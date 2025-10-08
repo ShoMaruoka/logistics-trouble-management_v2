@@ -142,13 +142,6 @@ namespace LogisticsTroubleManagement.Models
 
         // その他
         /// <summary>
-        /// ステータス
-        /// </summary>
-        [Required]
-        [MaxLength(50)]
-        public string Status { get; set; } = "2次情報調査中";
-
-        /// <summary>
         /// 作成日時
         /// </summary>
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

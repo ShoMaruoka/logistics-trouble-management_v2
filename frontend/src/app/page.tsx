@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { PlusCircle, Download, Search, Lightbulb, Bot } from "lucide-react";
 import { format, getYear, getMonth, startOfMonth, endOfMonth, eachDayOfInterval, getDate, getDaysInMonth, startOfYear, endOfYear, eachDayOfInterval as eachDayOfIntervalFn, isSameDay } from 'date-fns';
 import { ja } from "date-fns/locale";
@@ -29,10 +29,14 @@ import {
 } from "@/components/ui/chart";
 import { Bar, BarChart, XAxis, YAxis, Pie, PieChart, Cell } from "recharts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { updateIncidentStatus, createInitialIncidents, shippingWarehouses, troubleDetailCategories, troubleCategories } from "@/lib/data";
+import { updateIncidentStatus, createInitialIncidents, troubleDetailCategories, troubleCategories } from "@/lib/data";
 // AI機能は無効化済み
 // import { suggestIncidentDetails } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
+import { useApi, useAuth, useMasterData } from "@/hooks/useApi";
+import { incidentsApi } from "@/lib/api";
+import { convertApiIncidentToFrontend, convertFrontendIncidentToApiUpdateRequest, convertFrontendIncidentToApiCreateRequest } from "@/lib/apiAdapter";
+import { LoginForm } from "@/components/login-form";
 
 
 const barChartConfig = troubleDetailCategories.reduce((acc, category, index) => {
@@ -56,12 +60,75 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortConfig, setSortConfig] = useState<{ key: keyof Incident; direction: 'ascending' | 'descending' } | null>({ key: 'occurrenceDateTime', direction: 'descending' });
   
-  const [selectedYear, setSelectedYear] = useState<number>(2025);
-  const [selectedMonth, setSelectedMonth] = useState<number | 'all'>(9);
+  const [selectedYear, setSelectedYear] = useState<number>(() => {
+    const year = getYear(new Date());
+    return year;
+  });
+  const [selectedMonth, setSelectedMonth] = useState<number | 'all'>(() => {
+    const month = getMonth(new Date()) + 1;
+    return month;
+  });
   const [selectedWarehouse, setSelectedWarehouse] = useState<string>("all");
   const { toast } = useToast();
   const [currentPage, setCurrentPage] = useState(1);
   const incidentsPerPage = 30;
+
+  // 認証状態の管理
+  const { isAuthenticated, user, loading: authLoading, login, checkAuth } = useAuth();
+  
+  // マスターデータの管理（認証不要）
+  const { masterData, loading: masterDataLoading } = useMasterData();
+  
+  // インシデントデータの管理（APIから取得）
+  const { 
+    data: incidentsData, 
+    loading: incidentsLoading, 
+    error: incidentsError, 
+    refetch: refetchIncidents 
+  } = useApi(
+    () => incidentsApi.getIncidents({
+      page: 1, // 常に1ページ目を取得
+      limit: 1000, // 大きな値を設定して全データを取得
+      year: selectedYear,
+      month: selectedMonth === 'all' ? undefined : selectedMonth,
+    }),
+    [selectedYear, selectedMonth] // currentPageを依存配列から削除
+  );
+  
+  // デバッグ用：認証状態の変化をログに出力
+  useEffect(() => {
+  }, [isAuthenticated, user, authLoading, masterDataLoading, incidentsLoading]);
+
+  // 認証完了後のデータ再取得（一度だけ実行）
+  const hasRefetchedAfterAuth = useRef(false);
+  useEffect(() => {
+    if (isAuthenticated && !authLoading && !incidentsLoading && !hasRefetchedAfterAuth.current) {
+      hasRefetchedAfterAuth.current = true;
+      refetchIncidents();
+    }
+  }, [isAuthenticated, authLoading, incidentsLoading, refetchIncidents]);
+
+  // 認証状態の変更を監視して、必要に応じて再チェック
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!isAuthenticated && !authLoading) {
+        // 認証されていない状態で、ローディング中でもない場合、認証状態を再チェック
+        checkAuth();
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated, authLoading, checkAuth]);
+
+  // APIデータをフロントエンド形式に変換
+  useEffect(() => {
+    if (incidentsData?.incidents) {
+      const convertedIncidents = incidentsData.incidents.map(incident => 
+        convertApiIncidentToFrontend(incident, masterData)
+      );
+      setIncidents(convertedIncidents);
+    }
+  }, [incidentsData, selectedYear, selectedMonth, masterData]);
 
   const years = useMemo(() => {
     const allYears = incidents.map(i => getYear(new Date(i.occurrenceDateTime)));
@@ -75,14 +142,6 @@ export default function Home() {
 
   const months = Array.from({ length: 12 }, (_, i) => i + 1);
 
-  useEffect(() => {
-    if (incidents.length === 0) {
-      const initialData = createInitialIncidents();
-      const updatedData = initialData.map(updateIncidentStatus);
-      setIncidents(updatedData);
-    }
-  }, [incidents.length]);
-
   const handleEditIncident = (incident: Incident) => {
     setEditingIncident(incident);
     setIsDialogOpen(true);
@@ -93,38 +152,63 @@ export default function Home() {
     setIsDialogOpen(true);
   }
 
-  const handleSaveIncident = (data: Partial<Omit<Incident, 'id'>>, infoLevel: 1 | 2 | 3) => {
-    const todayStr = format(new Date(), 'yyyy-MM-dd');
-    
-    if (editingIncident && editingIncident.id) {
-        setIncidents(prev => prev.map(i => {
-            if (i.id === editingIncident.id) {
-                let updatedIncident = { ...i, ...data };
-                if (infoLevel === 1) {
-                    updatedIncident.status = '2次情報調査中';
-                    updatedIncident.infoInputDates = { ...updatedIncident.infoInputDates, info1: todayStr };
-                } else if (infoLevel === 2) {
-                    updatedIncident.status = '3次情報調査中';
-                    updatedIncident.infoInputDates = { ...updatedIncident.infoInputDates, info2: todayStr };
-                } else if (infoLevel === 3) {
-                    updatedIncident.status = '完了';
-                    updatedIncident.infoInputDates = { ...updatedIncident.infoInputDates, info3: todayStr };
-                }
-                return updateIncidentStatus(updatedIncident);
-            }
-            return i;
-        }));
-    } else {
-        const newIncident: Incident = {
-            ...data,
-            id: (incidents.length + 1).toString(),
-            creationDate: todayStr,
-            status: '2次情報調査中',
-            infoInputDates: { info1: todayStr },
-        } as Incident;
-        setIncidents(prev => [ newIncident, ...prev ]);
+  const handleSaveIncident = async (data: Partial<Omit<Incident, 'id'>>, infoLevel: 1 | 2 | 3) => {
+    try {
+      const todayStr = format(new Date(), 'yyyy-MM-dd');
+      
+      if (editingIncident && editingIncident.id) {
+        // 既存インシデントの更新
+        // 作成日は更新しない（既存の値を保持）
+        const { creationDate, ...dataWithoutCreationDate } = data;
+        
+        const updateData = {
+          ...dataWithoutCreationDate,
+          // 入力日は手動で設定される（自動設定しない）
+          inputDate: data.inputDate, // フォームで入力された値をそのまま使用
+          processDescription: infoLevel >= 2 ? data.processDescription : undefined,
+          cause: infoLevel >= 2 ? data.cause : undefined,
+          photoDataUri: infoLevel >= 2 ? data.photoDataUri : undefined,
+          inputDate3: data.inputDate3, // フォームで入力された値をそのまま使用
+          recurrencePreventionMeasures: infoLevel >= 3 ? data.recurrencePreventionMeasures : undefined,
+        };
+
+        // フロントエンド型をAPI型に変換
+        const apiUpdateData = convertFrontendIncidentToApiUpdateRequest(updateData, masterData);
+        await incidentsApi.updateIncident(parseInt(editingIncident.id), apiUpdateData);
+        
+        // ステータスは動的に計算されるため、直接的な更新は不要
+        
+        toast({
+          title: "インシデントを更新しました",
+          description: "データが正常に保存されました。",
+        });
+      } else {
+        // 新規インシデントの作成
+        const createData = {
+          ...data,
+          creationDate: todayStr,
+        };
+
+        // フロントエンド型をAPI型に変換
+        const apiCreateData = convertFrontendIncidentToApiCreateRequest(createData, masterData);
+        await incidentsApi.createIncident(apiCreateData);
+        
+        toast({
+          title: "インシデントを作成しました",
+          description: "新しいインシデントが正常に作成されました。",
+        });
+      }
+      
+      // データを再取得
+      await refetchIncidents();
+      setIsDialogOpen(false);
+    } catch (error) {
+      toast({
+        title: "エラーが発生しました",
+        description: error instanceof Error ? error.message : "インシデントの保存に失敗しました。",
+        variant: "destructive",
+      });
     }
-    setIsDialogOpen(false);
   };
 
   // AI機能は無効化済み
@@ -133,26 +217,25 @@ export default function Home() {
   //   return null;
   // }
   
-  const downloadCSV = () => {
-    if (incidents.length === 0) return;
-    const header = Object.keys(incidents[0] || {}).filter(k => k !== 'photoDataUri' && k !== 'infoInputDates');
-    const rows = incidents.map(incident => {
-      return header.map(key => {
-        const value = incident[key as keyof Incident] as string | number;
-        if (typeof value === 'string' && (value.includes(',') || value.includes('"') || value.includes('\n'))) {
-          return `"${value.replace(/"/g, '""')}"`;
-        }
-        return value;
-      }).join(',');
-    });
-    const csvContent = "data:text/csv;charset=utf-8," + [header.join(','), ...rows].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `物流品質トラブル一覧_${format(new Date(), 'yyyyMMdd')}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const downloadCSV = async () => {
+    try {
+      await incidentsApi.exportIncidentsToCsv({
+        year: selectedYear,
+        month: selectedMonth === 'all' ? undefined : selectedMonth,
+        warehouse: selectedWarehouse === 'all' ? undefined : 1, // 実際の実装では適切なIDを設定
+      });
+      
+      toast({
+        title: "CSVファイルをダウンロードしました",
+        description: "データが正常にエクスポートされました。",
+      });
+    } catch (error) {
+      toast({
+        title: "エラーが発生しました",
+        description: error instanceof Error ? error.message : "CSVのダウンロードに失敗しました。",
+        variant: "destructive",
+      });
+    }
   };
 
   const filteredIncidents = useMemo(() => {
@@ -183,8 +266,8 @@ export default function Home() {
     const total = data.length;
     const completed = data.filter(i => i.status === '完了').length;
     const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
-    const d2 = data.filter(i => i.status === '2次情報遅延').length;
-    const d3 = data.filter(i => i.status === '3次情報遅延').length;
+    const d2 = data.filter(i => i.status === '2次情報調査遅延' || i.status === '2次情報遅延').length;
+    const d3 = data.filter(i => i.status === '3次情報調査遅延' || i.status === '3次情報遅延').length;
 
     let daily;
     if (selectedMonth === 'all') {
@@ -351,6 +434,41 @@ export default function Home() {
 };
 
 
+  // ローディング状態の表示
+  if (authLoading || masterDataLoading) {
+    return (
+      <div className="min-h-screen w-full bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">読み込み中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 認証エラーの表示
+  if (!isAuthenticated) {
+    return <LoginForm onLoginSuccess={() => {
+      // 認証状態は既にuseAuthフックで管理されているため、何もしない
+    }} />;
+  }
+
+
+  // APIエラーの表示
+  if (incidentsError) {
+    return (
+      <div className="min-h-screen w-full bg-background flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">データの読み込みに失敗しました</h1>
+          <p className="text-muted-foreground mb-4">{incidentsError}</p>
+          <Button onClick={() => refetchIncidents()}>
+            再試行
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen w-full bg-background">
       <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur-sm">
@@ -361,10 +479,15 @@ export default function Home() {
               物流品質トラブル管理
             </h1>
           </div>
-            <Button onClick={handleAddNewIncident}>
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-muted-foreground">
+              こんにちは、{user?.fullName || 'ユーザー'}さん
+            </span>
+            <Button onClick={handleAddNewIncident} disabled={incidentsLoading}>
                 <PlusCircle />
                 物流品質トラブル登録
             </Button>
+          </div>
         </div>
       </header>
 
@@ -415,7 +538,9 @@ export default function Home() {
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">すべての倉庫</SelectItem>
-                            {shippingWarehouses.map(w => <SelectItem key={w} value={w}>{w}</SelectItem>)}
+                            {masterData?.shippingWarehouses?.map((w: any) => (
+                                <SelectItem key={w.id} value={w.name}>{w.name}</SelectItem>
+                            ))}
                         </SelectContent>
                     </Select>
                 </div>
@@ -516,7 +641,7 @@ export default function Home() {
                 />
               </div>
             </div>
-            <Button variant="outline" size="sm" onClick={downloadCSV} className="w-full sm:w-auto" disabled={incidents.length === 0}>
+            <Button variant="outline" size="sm" onClick={downloadCSV} className="w-full sm:w-auto" disabled={incidentsLoading || incidents.length === 0}>
               <Download className="mr-2" />
               CSV出力
             </Button>

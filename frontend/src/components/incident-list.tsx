@@ -1,7 +1,7 @@
 "use client";
 
 import type { Incident } from "@/lib/types";
-import { ArrowUp, ArrowDown } from "lucide-react";
+import { ArrowUp, ArrowDown, Clock, CheckCircle, AlertTriangle, AlertCircle } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -24,11 +24,33 @@ export const getStatusBadgeVariant = (status?: Incident['status']) => {
   switch (status) {
     case '完了':
       return 'default';
+    case '2次情報調査遅延':
     case '2次情報遅延':
+    case '3次情報調査遅延':
     case '3次情報遅延':
       return 'destructive';
-    default:
+    case '2次情報調査中':
+    case '3次情報調査中':
       return 'secondary';
+    default:
+      return 'outline';
+  }
+};
+
+export const getStatusIcon = (status?: Incident['status']) => {
+  switch (status) {
+    case '完了':
+      return <CheckCircle className="h-4 w-4" />;
+    case '2次情報調査遅延':
+    case '2次情報遅延':
+    case '3次情報調査遅延':
+    case '3次情報遅延':
+      return <AlertTriangle className="h-4 w-4" />;
+    case '2次情報調査中':
+    case '3次情報調査中':
+      return <Clock className="h-4 w-4" />;
+    default:
+      return <AlertCircle className="h-4 w-4" />;
   }
 };
 
@@ -93,7 +115,8 @@ export function IncidentList({ incidents, requestSort, sortConfig, onEdit }: Inc
               incidents.map((incident) => (
                 <TableRow key={incident.id} onClick={() => onEdit(incident)} className="cursor-pointer">
                   <TableCell>
-                    <Badge variant={getStatusBadgeVariant(incident.status)}>
+                    <Badge variant={getStatusBadgeVariant(incident.status)} className="flex items-center gap-1 w-fit">
+                      {getStatusIcon(incident.status)}
                       {incident.status}
                     </Badge>
                   </TableCell>

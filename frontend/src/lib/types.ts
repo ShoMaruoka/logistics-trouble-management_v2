@@ -28,10 +28,7 @@ export type Incident = {
   recurrencePreventionMeasures?: string;
   
   // その他
-  status: '2次情報調査中' | '2次情報遅延' | '3次情報調査中' | '3次情報遅延' | '完了';
-  infoInputDates?: {
-    info1?: string; // YYYY-MM-DD
-    info2?: string; // YYYY-MM-DD
-    info3?: string; // YYYY-MM-DD
-  }
+  status: '2次情報調査中' | '2次情報調査遅延' | '2次情報遅延' | '3次情報調査中' | '3次情報調査遅延' | '3次情報遅延' | '完了';
+  createdAt?: string; // ISO string
+  updatedAt?: string; // ISO string
 };

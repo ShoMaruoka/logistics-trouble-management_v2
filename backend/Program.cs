@@ -86,6 +86,11 @@ builder.Services.AddScoped<IIncidentService, IncidentService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IMasterDataService, MasterDataService>();
+builder.Services.AddScoped<ISystemParameterService, SystemParameterService>();
+builder.Services.AddScoped<IIncidentStatusCalculationService, IncidentStatusCalculationService>();
+
+// メモリキャッシュの追加
+builder.Services.AddMemoryCache();
 
 // JWT認証の設定
 var jwtSettings = builder.Configuration.GetSection("Jwt");

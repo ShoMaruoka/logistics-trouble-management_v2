@@ -46,14 +46,6 @@ namespace LogisticsTroubleManagement.Services
         /// <returns>削除結果</returns>
         Task<ApiResponseDto<bool>> DeleteIncidentAsync(int id);
 
-        /// <summary>
-        /// インシデントのステータス更新
-        /// </summary>
-        /// <param name="id">インシデントID</param>
-        /// <param name="status">新しいステータス</param>
-        /// <param name="userId">更新者ID</param>
-        /// <returns>更新結果</returns>
-        Task<ApiResponseDto<bool>> UpdateIncidentStatusAsync(int id, string status, int userId);
 
         /// <summary>
         /// インシデントのCSV出力

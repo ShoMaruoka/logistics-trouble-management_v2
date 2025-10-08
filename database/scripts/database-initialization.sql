@@ -101,6 +101,24 @@ BEGIN
     PRINT '単位テーブルを作成しました。';
 END
 
+-- システムパラメータマスタ
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[システムパラメータ]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE システムパラメータ (
+        ID INT IDENTITY(1,1) PRIMARY KEY,
+        パラメータキー NVARCHAR(100) NOT NULL UNIQUE,
+        パラメータ値 NVARCHAR(500) NOT NULL,
+        説明 NVARCHAR(1000),
+        データ型 NVARCHAR(50) NOT NULL,
+        有効フラグ BIT NOT NULL DEFAULT 1,
+        作成日時 DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+        更新日時 DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+        作成者 INT,
+        更新者 INT
+    );
+    PRINT 'システムパラメータテーブルを作成しました。';
+END
+
 -- =============================================
 -- 2. ユーザー管理テーブルの作成
 -- =============================================
@@ -166,7 +184,6 @@ BEGIN
         写真データURI NVARCHAR(MAX),
         "3次情報入力日" DATE,
         再発防止策 NVARCHAR(MAX),
-        ステータス NVARCHAR(20) NOT NULL,
         作成日時 DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
         更新日時 DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
         作成者 INT NOT NULL,

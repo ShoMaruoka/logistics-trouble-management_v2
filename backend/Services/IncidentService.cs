@@ -14,15 +14,18 @@ namespace LogisticsTroubleManagement.Services
         private readonly ApplicationDbContext _context;
         private readonly IMapper _mapper;
         private readonly ILogger<IncidentService> _logger;
+        private readonly IIncidentStatusCalculationService _statusCalculationService;
 
         public IncidentService(
             ApplicationDbContext context,
             IMapper mapper,
-            ILogger<IncidentService> logger)
+            ILogger<IncidentService> logger,
+            IIncidentStatusCalculationService statusCalculationService)
         {
             _context = context;
             _mapper = mapper;
             _logger = logger;
+            _statusCalculationService = statusCalculationService;
         }
 
         /// <summary>
@@ -60,10 +63,6 @@ namespace LogisticsTroubleManagement.Services
                     query = query.Where(i => i.ShippingWarehouse == searchDto.Warehouse.Value);
                 }
 
-                if (!string.IsNullOrEmpty(searchDto.Status))
-                {
-                    query = query.Where(i => i.Status == searchDto.Status);
-                }
 
                 if (searchDto.TroubleCategory.HasValue)
                 {
@@ -80,7 +79,16 @@ namespace LogisticsTroubleManagement.Services
                     .Take(searchDto.Limit)
                     .ToListAsync();
 
-                var incidentDtos = _mapper.Map<List<IncidentResponseDto>>(incidents);
+                // 動的ステータス計算
+                var statuses = await _statusCalculationService.CalculateIncidentStatusesAsync(incidents);
+
+                // DTOにマッピング（ステータスを含む）
+                var incidentDtos = incidents.Select(incident => 
+                {
+                    var dto = _mapper.Map<IncidentResponseDto>(incident);
+                    dto.Status = statuses[incident.Id];
+                    return dto;
+                }).ToList();
 
                 return PagedApiResponseDto<IncidentResponseDto>.SuccessResponse(
                     incidentDtos, searchDto.Page, searchDto.Limit, total);
@@ -112,6 +120,7 @@ namespace LogisticsTroubleManagement.Services
                 }
 
                 var incidentDto = _mapper.Map<IncidentResponseDto>(incident);
+                incidentDto.Status = _statusCalculationService.CalculateIncidentStatus(incident);
                 return ApiResponseDto<IncidentResponseDto>.SuccessResponse(incidentDto);
             }
             catch (Exception ex)
@@ -130,7 +139,6 @@ namespace LogisticsTroubleManagement.Services
             {
                 var incident = _mapper.Map<Incident>(createDto);
                 // IDは自動生成されるため設定不要
-                incident.Status = IncidentStatus.SecondInfoInvestigation;
                 incident.CreatedBy = userId;
                 incident.UpdatedBy = userId;
                 incident.CreatedAt = DateTime.UtcNow;
@@ -140,6 +148,7 @@ namespace LogisticsTroubleManagement.Services
                 await _context.SaveChangesAsync();
 
                 var incidentDto = _mapper.Map<IncidentResponseDto>(incident);
+                incidentDto.Status = _statusCalculationService.CalculateIncidentStatus(incident);
                 return ApiResponseDto<IncidentResponseDto>.SuccessResponse(incidentDto);
             }
             catch (Exception ex)
@@ -212,15 +221,16 @@ namespace LogisticsTroubleManagement.Services
                 if (updateDto.RecurrencePreventionMeasures != null)
                     incident.RecurrencePreventionMeasures = updateDto.RecurrencePreventionMeasures;
 
-                // ステータスの自動更新
-                UpdateIncidentStatus(incident);
-
                 incident.UpdatedBy = userId;
                 incident.UpdatedAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
 
+                // ステータスキャッシュをクリア
+                _statusCalculationService.ClearIncidentStatusCache(id);
+
                 var incidentDto = _mapper.Map<IncidentResponseDto>(incident);
+                incidentDto.Status = _statusCalculationService.CalculateIncidentStatus(incident);
                 return ApiResponseDto<IncidentResponseDto>.SuccessResponse(incidentDto);
             }
             catch (Exception ex)
@@ -257,35 +267,6 @@ namespace LogisticsTroubleManagement.Services
             }
         }
 
-        /// <summary>
-        /// インシデントのステータス更新
-        /// </summary>
-        public async Task<ApiResponseDto<bool>> UpdateIncidentStatusAsync(int id, string status, int userId)
-        {
-            try
-            {
-                var incident = await _context.Incidents
-                    .FirstOrDefaultAsync(i => i.Id == id);
-
-                if (incident == null)
-                {
-                    return ApiResponseDto<bool>.ErrorResponse("インシデントが見つかりません");
-                }
-
-                incident.Status = status;
-                incident.UpdatedBy = userId;
-                incident.UpdatedAt = DateTime.UtcNow;
-
-                await _context.SaveChangesAsync();
-
-                return ApiResponseDto<bool>.SuccessResponse(true);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "インシデントステータスの更新中にエラーが発生しました: {IncidentId}", id);
-                return ApiResponseDto<bool>.ErrorResponse("インシデントステータスの更新に失敗しました");
-            }
-        }
 
         /// <summary>
         /// インシデントのCSV出力
@@ -322,10 +303,6 @@ namespace LogisticsTroubleManagement.Services
                     query = query.Where(i => i.ShippingWarehouse == searchDto.Warehouse.Value);
                 }
 
-                if (!string.IsNullOrEmpty(searchDto.Status))
-                {
-                    query = query.Where(i => i.Status == searchDto.Status);
-                }
 
                 if (searchDto.TroubleCategory.HasValue)
                 {
@@ -357,12 +334,6 @@ namespace LogisticsTroubleManagement.Services
 
                 // 基本統計
                 stats.TotalIncidents = await _context.Incidents.CountAsync();
-                stats.CompletedIncidents = await _context.Incidents
-                    .CountAsync(i => i.Status == IncidentStatus.Completed);
-                stats.SecondInfoDelayedCount = await _context.Incidents
-                    .CountAsync(i => i.Status == IncidentStatus.SecondInfoDelayed);
-                stats.ThirdInfoDelayedCount = await _context.Incidents
-                    .CountAsync(i => i.Status == IncidentStatus.ThirdInfoDelayed);
 
                 // 日別発生件数（過去30日）
                 var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
@@ -421,16 +392,6 @@ namespace LogisticsTroubleManagement.Services
                     .OrderByDescending(x => x.Count)
                     .ToListAsync();
 
-                // ステータス別件数
-                stats.StatusCounts = await _context.Incidents
-                    .GroupBy(i => i.Status)
-                    .Select(g => new StatusCountDto
-                    {
-                        Status = g.Key,
-                        Count = g.Count()
-                    })
-                    .OrderByDescending(x => x.Count)
-                    .ToListAsync();
 
                 return ApiResponseDto<DashboardStatsDto>.SuccessResponse(stats);
             }
@@ -441,44 +402,6 @@ namespace LogisticsTroubleManagement.Services
             }
         }
 
-        /// <summary>
-        /// インシデントステータスの自動更新
-        /// </summary>
-        private void UpdateIncidentStatus(Incident incident)
-        {
-            // 2次情報が入力された場合
-            if (incident.InputDate.HasValue && !string.IsNullOrEmpty(incident.ProcessDescription) && !string.IsNullOrEmpty(incident.Cause))
-            {
-                // 3次情報が入力されているかチェック
-                if (incident.InputDate3.HasValue && !string.IsNullOrEmpty(incident.RecurrencePreventionMeasures))
-                {
-                    incident.Status = IncidentStatus.Completed;
-                }
-                else
-                {
-                    incident.Status = IncidentStatus.ThirdInfoInvestigation;
-                }
-            }
-            else
-            {
-                // 2次情報の入力期限チェック（7日）
-                var secondInfoDeadline = incident.CreationDate.AddDays(7);
-                if (DateTime.UtcNow > secondInfoDeadline && incident.Status == IncidentStatus.SecondInfoInvestigation)
-                {
-                    incident.Status = IncidentStatus.SecondInfoDelayed;
-                }
-            }
-
-            // 3次情報の入力期限チェック（2次情報入力から7日）
-            if (incident.InputDate.HasValue && incident.Status == IncidentStatus.ThirdInfoInvestigation)
-            {
-                var thirdInfoDeadline = incident.InputDate.Value.AddDays(7);
-                if (DateTime.UtcNow > thirdInfoDeadline)
-                {
-                    incident.Status = IncidentStatus.ThirdInfoDelayed;
-                }
-            }
-        }
 
         /// <summary>
         /// CSVデータの生成
@@ -489,12 +412,12 @@ namespace LogisticsTroubleManagement.Services
             using var writer = new StreamWriter(memoryStream, System.Text.Encoding.UTF8);
 
             // CSVヘッダー
-            writer.WriteLine("ID,作成日,所属組織,作成者,発生日時,発生場所,出荷元倉庫,運送会社名,トラブル区分,トラブル詳細区分,内容詳細,伝票番号,得意先コード,商品コード,数量,単位,2次情報入力日,発生経緯,発生原因,3次情報入力日,再発防止策,ステータス,作成日時,更新日時");
+            writer.WriteLine("ID,作成日,所属組織,作成者,発生日時,発生場所,出荷元倉庫,運送会社名,トラブル区分,トラブル詳細区分,内容詳細,伝票番号,得意先コード,商品コード,数量,単位,2次情報入力日,発生経緯,発生原因,3次情報入力日,再発防止策,作成日時,更新日時");
 
             // CSVデータ
             foreach (var incident in incidents)
             {
-                writer.WriteLine($"{incident.Id},{incident.CreationDate:yyyy-MM-dd},{incident.Organization},{incident.Creator},{incident.OccurrenceDateTime:yyyy-MM-dd HH:mm},{incident.OccurrenceLocation},{incident.ShippingWarehouse},{incident.ShippingCompany},{incident.TroubleCategory},{incident.TroubleDetailCategory},\"{incident.Details}\",{incident.VoucherNumber ?? ""},{incident.CustomerCode ?? ""},{incident.ProductCode ?? ""},{incident.Quantity ?? 0},{incident.Unit?.ToString() ?? ""},{incident.InputDate?.ToString("yyyy-MM-dd") ?? ""},\"{incident.ProcessDescription ?? ""}\",\"{incident.Cause ?? ""}\",{incident.InputDate3?.ToString("yyyy-MM-dd") ?? ""},\"{incident.RecurrencePreventionMeasures ?? ""}\",{incident.Status},{incident.CreatedAt:yyyy-MM-dd HH:mm:ss},{incident.UpdatedAt:yyyy-MM-dd HH:mm:ss}");
+                writer.WriteLine($"{incident.Id},{incident.CreationDate:yyyy-MM-dd},{incident.Organization},{incident.Creator},{incident.OccurrenceDateTime:yyyy-MM-dd HH:mm},{incident.OccurrenceLocation},{incident.ShippingWarehouse},{incident.ShippingCompany},{incident.TroubleCategory},{incident.TroubleDetailCategory},\"{incident.Details}\",{incident.VoucherNumber ?? ""},{incident.CustomerCode ?? ""},{incident.ProductCode ?? ""},{incident.Quantity ?? 0},{incident.Unit?.ToString() ?? ""},{incident.InputDate?.ToString("yyyy-MM-dd") ?? ""},\"{incident.ProcessDescription ?? ""}\",\"{incident.Cause ?? ""}\",{incident.InputDate3?.ToString("yyyy-MM-dd") ?? ""},\"{incident.RecurrencePreventionMeasures ?? ""}\",{incident.CreatedAt:yyyy-MM-dd HH:mm:ss},{incident.UpdatedAt:yyyy-MM-dd HH:mm:ss}");
             }
 
             writer.Flush();

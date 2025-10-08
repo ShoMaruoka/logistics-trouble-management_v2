@@ -281,7 +281,7 @@ namespace LogisticsTroubleManagement.Controllers
             {
                 // 生のSQLクエリでインシデントデータを取得
                 var incidents = await _context.Database
-                    .SqlQueryRaw<IncidentDebugInfo>("SELECT TOP 10 ID, 作成日, 部門ID, 作成者ID, 発生日時, 発生場所ID, 倉庫ID, 運送会社ID, トラブル区分ID, トラブル詳細区分ID, 内容詳細, 伝票番号, 得意先コード, 商品コード, 数量, 単位ID, [2次情報入力日] AS 二次情報入力日, 発生経緯, 発生原因, 写真データURI, [3次情報入力日] AS 三次情報入力日, 再発防止策, ステータス, 作成者, 更新者, 作成日時, 更新日時 FROM インシデント ORDER BY ID")
+                    .SqlQueryRaw<IncidentDebugInfo>("SELECT TOP 10 ID, 作成日, 部門ID, 作成者ID, 発生日時, 発生場所ID, 倉庫ID, 運送会社ID, トラブル区分ID, トラブル詳細区分ID, 内容詳細, 伝票番号, 得意先コード, 商品コード, 数量, 単位ID, [2次情報入力日] AS 二次情報入力日, 発生経緯, 発生原因, 写真データURI, [3次情報入力日] AS 三次情報入力日, 再発防止策, 作成者, 更新者, 作成日時, 更新日時 FROM インシデント ORDER BY ID")
                     .ToListAsync();
 
                 return Ok(new { 
@@ -311,7 +311,7 @@ namespace LogisticsTroubleManagement.Controllers
             {
                 // 生のSQLクエリで特定のインシデントを検索
                 var incident = await _context.Database
-                    .SqlQueryRaw<IncidentDebugInfo>("SELECT ID, 作成日, 部門ID, 作成者ID, 発生日時, 発生場所ID, 倉庫ID, 運送会社ID, トラブル区分ID, トラブル詳細区分ID, 内容詳細, 伝票番号, 得意先コード, 商品コード, 数量, 単位ID, [2次情報入力日] AS 二次情報入力日, 発生経緯, 発生原因, 写真データURI, [3次情報入力日] AS 三次情報入力日, 再発防止策, ステータス, 作成者, 更新者, 作成日時, 更新日時 FROM インシデント WHERE ID = {0}", id)
+                    .SqlQueryRaw<IncidentDebugInfo>("SELECT ID, 作成日, 部門ID, 作成者ID, 発生日時, 発生場所ID, 倉庫ID, 運送会社ID, トラブル区分ID, トラブル詳細区分ID, 内容詳細, 伝票番号, 得意先コード, 商品コード, 数量, 単位ID, [2次情報入力日] AS 二次情報入力日, 発生経緯, 発生原因, 写真データURI, [3次情報入力日] AS 三次情報入力日, 再発防止策, 作成者, 更新者, 作成日時, 更新日時 FROM インシデント WHERE ID = {0}", id)
                     .FirstOrDefaultAsync();
 
                 if (incident == null)
@@ -337,6 +337,36 @@ namespace LogisticsTroubleManagement.Controllers
                 });
             }
         }
+
+        /// <summary>
+        /// システムパラメータを確認
+        /// </summary>
+        [HttpGet("system-parameters")]
+        public async Task<IActionResult> GetSystemParameters()
+        {
+            try
+            {
+                var parameters = await _context.Database
+                    .SqlQueryRaw<SystemParameterDebugInfo>("SELECT パラメータキー, パラメータ値, 説明, データ型, 有効フラグ FROM システムパラメータ WHERE 有効フラグ = 1")
+                    .ToListAsync();
+
+                return Ok(new { 
+                    success = true, 
+                    count = parameters.Count,
+                    parameters = parameters 
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "デバッグ用システムパラメータ取得中にエラーが発生しました");
+                return Ok(new { 
+                    success = false, 
+                    error = ex.Message,
+                    stackTrace = ex.StackTrace 
+                });
+            }
+        }
+
 
         /// <summary>
         /// Entity Framework経由でインシデントを検索
@@ -383,7 +413,6 @@ namespace LogisticsTroubleManagement.Controllers
                         PhotoDataUri = incident.PhotoDataUri,
                         InputDate3 = incident.InputDate3,
                         RecurrencePreventionMeasures = incident.RecurrencePreventionMeasures,
-                        Status = incident.Status,
                         CreatedBy = incident.CreatedBy,
                         UpdatedBy = incident.UpdatedBy,
                         CreatedAt = incident.CreatedAt,
@@ -419,6 +448,18 @@ namespace LogisticsTroubleManagement.Controllers
     }
 
     /// <summary>
+    /// デバッグ用システムパラメータ情報クラス
+    /// </summary>
+    public class SystemParameterDebugInfo
+    {
+        public string パラメータキー { get; set; } = string.Empty;
+        public string パラメータ値 { get; set; } = string.Empty;
+        public string? 説明 { get; set; }
+        public string データ型 { get; set; } = string.Empty;
+        public bool 有効フラグ { get; set; }
+    }
+
+    /// <summary>
     /// デバッグ用インシデント情報クラス
     /// </summary>
     public class IncidentDebugInfo
@@ -445,7 +486,6 @@ namespace LogisticsTroubleManagement.Controllers
         public string? 写真データURI { get; set; }
         public DateTime? 三次情報入力日 { get; set; }
         public string? 再発防止策 { get; set; }
-        public string ステータス { get; set; } = string.Empty;
         public int 作成者 { get; set; }
         public int 更新者 { get; set; }
         public DateTime 作成日時 { get; set; }

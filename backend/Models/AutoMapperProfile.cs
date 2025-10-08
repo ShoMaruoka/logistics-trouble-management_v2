@@ -15,7 +15,6 @@ namespace LogisticsTroubleManagement.Models
             CreateMap<Incident, IncidentResponseDto>();
             CreateMap<CreateIncidentDto, Incident>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
-                .ForMember(dest => dest.Status, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.UpdatedAt, opt => opt.Ignore())
                 .ForMember(dest => dest.CreatedBy, opt => opt.Ignore())

@@ -28,6 +28,11 @@ namespace LogisticsTroubleManagement.Data
         public DbSet<UserRole> UserRoles { get; set; }
 
         /// <summary>
+        /// システムパラメータ
+        /// </summary>
+        public DbSet<SystemParameter> SystemParameters { get; set; }
+
+        /// <summary>
         /// 部門
         /// </summary>
         public DbSet<Organization> Organizations { get; set; }
@@ -95,7 +100,6 @@ namespace LogisticsTroubleManagement.Data
                 entity.Property(e => e.PhotoDataUri).HasColumnName("写真データURI").HasMaxLength(500);
                 entity.Property(e => e.InputDate3).HasColumnName("3次情報入力日");
                 entity.Property(e => e.RecurrencePreventionMeasures).HasColumnName("再発防止策").HasMaxLength(2000);
-                entity.Property(e => e.Status).HasColumnName("ステータス").IsRequired().HasMaxLength(50);
                 entity.Property(e => e.CreatedBy).HasColumnName("作成者").IsRequired();
                 entity.Property(e => e.UpdatedBy).HasColumnName("更新者").IsRequired();
                 entity.Property(e => e.CreatedAt).HasColumnName("作成日時").IsRequired();
@@ -116,7 +120,6 @@ namespace LogisticsTroubleManagement.Data
                 entity.HasIndex(e => e.CreationDate);
                 entity.HasIndex(e => e.Organization);
                 entity.HasIndex(e => e.ShippingWarehouse);
-                entity.HasIndex(e => e.Status);
                 entity.HasIndex(e => e.TroubleCategory);
                 entity.HasIndex(e => e.OccurrenceDateTime);
             });
@@ -290,6 +293,28 @@ namespace LogisticsTroubleManagement.Data
                 // インデックス
                 entity.HasIndex(e => e.Code).IsUnique();
                 entity.HasIndex(e => e.Name);
+            });
+
+            // SystemParameter エンティティの設定
+            modelBuilder.Entity<SystemParameter>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                
+                // テーブル名とカラム名のマッピング
+                entity.ToTable("システムパラメータ");
+                entity.Property(e => e.Id).HasColumnName("ID");
+                entity.Property(e => e.ParameterKey).HasColumnName("パラメータキー").IsRequired().HasMaxLength(100);
+                entity.Property(e => e.ParameterValue).HasColumnName("パラメータ値").IsRequired().HasMaxLength(500);
+                entity.Property(e => e.Description).HasColumnName("説明").HasMaxLength(1000);
+                entity.Property(e => e.DataType).HasColumnName("データ型").IsRequired().HasMaxLength(50);
+                entity.Property(e => e.IsActive).HasColumnName("有効フラグ").HasDefaultValue(true);
+                entity.Property(e => e.CreatedAt).HasColumnName("作成日時").IsRequired();
+                entity.Property(e => e.UpdatedAt).HasColumnName("更新日時").IsRequired();
+                entity.Property(e => e.CreatedBy).HasColumnName("作成者");
+                entity.Property(e => e.UpdatedBy).HasColumnName("更新者");
+
+                // インデックス
+                entity.HasIndex(e => e.ParameterKey).IsUnique();
             });
 
                 // 初期データの投入

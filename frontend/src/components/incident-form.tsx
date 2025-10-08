@@ -26,21 +26,23 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Calendar } from "./ui/calendar";
 import { cn } from "@/lib/utils";
 import { Badge } from "./ui/badge";
-import { getStatusBadgeVariant } from "./incident-list";
-import { organizations, occurrenceLocations, shippingWarehouses, shippingCompanies, troubleCategories, troubleDetailCategories, units } from "@/lib/data";
+import { getStatusBadgeVariant, getStatusIcon } from "./incident-list";
+import { useMasterData } from "@/hooks/useApi";
+import type { MasterDataItem } from "@/lib/api/types";
+import { units } from "@/lib/data";
 
 
 const formSchema = z.object({
   // 1次情報
   creationDate: z.string().min(1, "作成日は必須です。"),
-  organization: z.enum(organizations, { required_error: "所属組織を選択してください。" }),
+  organization: z.string().min(1, "所属組織を選択してください。"),
   creator: z.string().min(1, "作成者は必須です。"),
   occurrenceDateTime: z.string().min(1, "発生日時は必須です。"),
-  occurrenceLocation: z.enum(occurrenceLocations, { required_error: "発生場所を選択してください。" }),
-  shippingWarehouse: z.enum(shippingWarehouses, { required_error: "出荷元倉庫を選択してください。" }),
-  shippingCompany: z.enum(shippingCompanies, { required_error: "運送会社名を選択してください。" }),
-  troubleCategory: z.enum(troubleCategories, { required_error: "トラブル区分を選択してください。" }),
-  troubleDetailCategory: z.enum(troubleDetailCategories, { required_error: "トラブル詳細区分を選択してください。" }),
+  occurrenceLocation: z.string().min(1, "発生場所を選択してください。"),
+  shippingWarehouse: z.string().min(1, "出荷元倉庫を選択してください。"),
+  shippingCompany: z.string().min(1, "運送会社名を選択してください。"),
+  troubleCategory: z.string().min(1, "トラブル区分を選択してください。"),
+  troubleDetailCategory: z.string().min(1, "トラブル詳細区分を選択してください。"),
   details: z.string().min(1, "内容詳細は必須です。"),
   voucherNumber: z.string().optional(),
   customerCode: z.string().optional(),
@@ -86,31 +88,32 @@ type IncidentFormProps = {
 
 export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormProps) {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const { masterData, loading: masterLoading, error: masterError } = useMasterData();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      creationDate: format(new Date(), 'yyyy-MM-dd'),
-      organization: undefined,
-      creator: "",
-      occurrenceDateTime: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
-      occurrenceLocation: undefined,
-      shippingWarehouse: undefined,
-      shippingCompany: undefined,
-      troubleCategory: undefined,
-      troubleDetailCategory: undefined,
-      details: "",
-      voucherNumber: "",
-      customerCode: "",
-      productCode: "",
-      quantity: 0,
-      unit: undefined,
-      inputDate: format(new Date(), 'yyyy-MM-dd'),
-      processDescription: "",
-      cause: "",
-      photoDataUri: "",
-      inputDate3: format(new Date(), 'yyyy-MM-dd'),
-      recurrencePreventionMeasures: "",
+      creationDate: incidentToEdit?.creationDate || format(new Date(), 'yyyy-MM-dd'),
+      organization: incidentToEdit?.organization || "",
+      creator: incidentToEdit?.creator || "",
+      occurrenceDateTime: incidentToEdit?.occurrenceDateTime ? format(new Date(incidentToEdit.occurrenceDateTime), "yyyy-MM-dd'T'HH:mm") : format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+      occurrenceLocation: incidentToEdit?.occurrenceLocation || "",
+      shippingWarehouse: incidentToEdit?.shippingWarehouse || "",
+      shippingCompany: incidentToEdit?.shippingCompany || "",
+      troubleCategory: incidentToEdit?.troubleCategory || "",
+      troubleDetailCategory: incidentToEdit?.troubleDetailCategory || "",
+      details: incidentToEdit?.details || "",
+      voucherNumber: incidentToEdit?.voucherNumber || undefined,
+      customerCode: incidentToEdit?.customerCode || undefined,
+      productCode: incidentToEdit?.productCode || undefined,
+      quantity: incidentToEdit?.quantity || undefined,
+      unit: incidentToEdit?.unit || undefined,
+      inputDate: incidentToEdit?.inputDate ? format(new Date(incidentToEdit.inputDate), "yyyy-MM-dd") : format(new Date(), 'yyyy-MM-dd'),
+      processDescription: incidentToEdit?.processDescription || undefined,
+      cause: incidentToEdit?.cause || undefined,
+      photoDataUri: incidentToEdit?.photoDataUri || undefined,
+      inputDate3: incidentToEdit?.inputDate3 ? format(new Date(incidentToEdit.inputDate3), "yyyy-MM-dd") : format(new Date(), 'yyyy-MM-dd'),
+      recurrencePreventionMeasures: incidentToEdit?.recurrencePreventionMeasures || undefined,
     },
   });
 
@@ -118,44 +121,16 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
   
   useEffect(() => {
     if (incidentToEdit) {
-      form.reset({
-        ...incidentToEdit,
-        occurrenceDateTime: incidentToEdit.occurrenceDateTime ? format(new Date(incidentToEdit.occurrenceDateTime), "yyyy-MM-dd'T'HH:mm") : '',
-        inputDate: incidentToEdit.inputDate ? format(new Date(incidentToEdit.inputDate), "yyyy-MM-dd") : format(new Date(), 'yyyy-MM-dd'),
-        inputDate3: incidentToEdit.inputDate3 ? format(new Date(incidentToEdit.inputDate3), "yyyy-MM-dd") : format(new Date(), 'yyyy-MM-dd'),
-      });
+
       if (incidentToEdit.photoDataUri) {
         setImagePreview(incidentToEdit.photoDataUri);
       } else {
         setImagePreview(null);
       }
     } else {
-      form.reset({
-        creationDate: format(new Date(), 'yyyy-MM-dd'),
-        organization: undefined,
-        creator: "",
-        occurrenceDateTime: format(new Date(), "yyyy-MM-dd'T'HH:mm"),
-        occurrenceLocation: undefined,
-        shippingWarehouse: undefined,
-        shippingCompany: undefined,
-        troubleCategory: undefined,
-        troubleDetailCategory: undefined,
-        details: "",
-        voucherNumber: "",
-        customerCode: "",
-        productCode: "",
-        quantity: 0,
-        unit: undefined,
-        inputDate: format(new Date(), 'yyyy-MM-dd'),
-        processDescription: "",
-        cause: "",
-        photoDataUri: "",
-        inputDate3: format(new Date(), 'yyyy-MM-dd'),
-        recurrencePreventionMeasures: "",
-      });
       setImagePreview(null);
     }
-  }, [incidentToEdit, form]);
+  }, [incidentToEdit]);
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -200,7 +175,8 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
             return acc;
         }, {} as Partial<z.infer<typeof formSchema>>);
         
-        onSave(dataToSave, infoLevel);
+        const typedData = dataToSave as unknown as Partial<Omit<Incident, "id">>;
+        onSave(typedData, infoLevel);
     }
   }
 
@@ -225,7 +201,15 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
               <Calendar
                 mode="single"
                 selected={field.value ? new Date(field.value as string) : undefined}
-                onSelect={(date) => field.onChange(date?.toISOString().split('T')[0])}
+                onSelect={(date) => {
+                  if (date) {
+                    // タイムゾーンの影響を避けるため、年、月、日を直接取得
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    field.onChange(`${year}-${month}-${day}`);
+                  }
+                }}
                 initialFocus
               />
             </PopoverContent>
@@ -236,9 +220,9 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
     />
   );
   
-  const isInfo1Editable = !status || status === '2次情報調査中' || status === '2次情報遅延';
-  const isInfo2Editable = status === '2次情報調査中' || status === '2次情報遅延' || status === '3次情報調査中' || status === '3次情報遅延';
-  const isInfo3Editable = status === '3次情報調査中' || status === '3次情報遅延' || status === '完了';
+  const isInfo1Editable = !status || status === '2次情報調査中' || status === '2次情報調査遅延' || status === '2次情報遅延';
+  const isInfo2Editable = status === '2次情報調査中' || status === '2次情報調査遅延' || status === '2次情報遅延' || status === '3次情報調査中' || status === '3次情報調査遅延' || status === '3次情報遅延';
+  const isInfo3Editable = status === '3次情報調査中' || status === '3次情報調査遅延' || status === '3次情報遅延' || status === '完了';
 
 
   return (
@@ -247,7 +231,10 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
         {status && (
             <div className="flex items-center gap-2 mb-4 p-3 bg-secondary rounded-lg">
                 <FormLabel>現在のステータス:</FormLabel>
-                <Badge variant={getStatusBadgeVariant(status)}>{status}</Badge>
+                <Badge variant={getStatusBadgeVariant(status)} className="flex items-center gap-1">
+                    {getStatusIcon(status)}
+                    {status}
+                </Badge>
             </div>
         )}
         <div className="max-h-[70vh] overflow-y-auto pr-4 space-y-6">
@@ -257,20 +244,20 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
               <CardHeader><CardTitle>1次情報</CardTitle></CardHeader>
               <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <DateField name="creationDate" label="作成日" />
-                <FormField control={form.control} name="organization" render={({ field }) => ( <FormItem><FormLabel>所属組織</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="選択..." /></SelectTrigger></FormControl><SelectContent>{organizations.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="organization" render={({ field }) => ( <FormItem><FormLabel>所属組織</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={masterLoading || !isInfo1Editable}><FormControl><SelectTrigger><SelectValue placeholder={masterLoading ? "読込中..." : "選択..."} /></SelectTrigger></FormControl><SelectContent>{masterData?.organizations?.map((o: MasterDataItem) => <SelectItem key={o.id} value={o.name}>{o.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="creator" render={({ field }) => ( <FormItem><FormLabel>作成者</FormLabel><FormControl><Input placeholder="氏名" {...field} /></FormControl><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="occurrenceDateTime" render={({ field }) => ( <FormItem><FormLabel>発生日時</FormLabel><FormControl><Input type="datetime-local" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                <FormField control={form.control} name="occurrenceLocation" render={({ field }) => ( <FormItem><FormLabel>発生場所</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="選択..." /></SelectTrigger></FormControl><SelectContent>{occurrenceLocations.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
-                <FormField control={form.control} name="shippingWarehouse" render={({ field }) => ( <FormItem><FormLabel>出荷元倉庫</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="選択..." /></SelectTrigger></FormControl><SelectContent>{shippingWarehouses.map(w => <SelectItem key={w} value={w}>{w}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
-                <FormField control={form.control} name="shippingCompany" render={({ field }) => ( <FormItem><FormLabel>運送会社名</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="選択..." /></SelectTrigger></FormControl><SelectContent>{shippingCompanies.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
-                <FormField control={form.control} name="troubleCategory" render={({ field }) => ( <FormItem><FormLabel>トラブル区分</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="選択..." /></SelectTrigger></FormControl><SelectContent>{troubleCategories.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
-                <FormField control={form.control} name="troubleDetailCategory" render={({ field }) => ( <FormItem><FormLabel>トラブル詳細区分</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="選択..." /></SelectTrigger></FormControl><SelectContent>{troubleDetailCategories.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="occurrenceLocation" render={({ field }) => ( <FormItem><FormLabel>発生場所</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={masterLoading || !isInfo1Editable}><FormControl><SelectTrigger><SelectValue placeholder={masterLoading ? "読込中..." : "選択..."} /></SelectTrigger></FormControl><SelectContent>{masterData?.occurrenceLocations?.map((o: MasterDataItem) => <SelectItem key={o.id} value={o.name}>{o.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="shippingWarehouse" render={({ field }) => ( <FormItem><FormLabel>出荷元倉庫</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={masterLoading || !isInfo1Editable}><FormControl><SelectTrigger><SelectValue placeholder={masterLoading ? "読込中..." : "選択..."} /></SelectTrigger></FormControl><SelectContent>{masterData?.shippingWarehouses?.map((w: MasterDataItem) => <SelectItem key={w.id} value={w.name}>{w.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="shippingCompany" render={({ field }) => ( <FormItem><FormLabel>運送会社名</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={masterLoading || !isInfo1Editable}><FormControl><SelectTrigger><SelectValue placeholder={masterLoading ? "読込中..." : "選択..."} /></SelectTrigger></FormControl><SelectContent>{masterData?.shippingCompanies?.map((c: MasterDataItem) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="troubleCategory" render={({ field }) => ( <FormItem><FormLabel>トラブル区分</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={masterLoading || !isInfo1Editable}><FormControl><SelectTrigger><SelectValue placeholder={masterLoading ? "読込中..." : "選択..."} /></SelectTrigger></FormControl><SelectContent>{masterData?.troubleCategories?.map((t: MasterDataItem) => <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="troubleDetailCategory" render={({ field }) => ( <FormItem><FormLabel>トラブル詳細区分</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={masterLoading || !isInfo1Editable}><FormControl><SelectTrigger><SelectValue placeholder={masterLoading ? "読込中..." : "選択..."} /></SelectTrigger></FormControl><SelectContent>{masterData?.troubleDetailCategories?.map((t: MasterDataItem) => <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="details" render={({ field }) => ( <FormItem className="lg:col-span-3"><FormLabel>内容詳細</FormLabel><FormControl><Textarea placeholder="トラブル内容の詳細..." {...field} rows={3}/></FormControl><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="voucherNumber" render={({ field }) => ( <FormItem><FormLabel>伝票番号</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="customerCode" render={({ field }) => ( <FormItem><FormLabel>得意先コード</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="productCode" render={({ field }) => ( <FormItem><FormLabel>商品名CD</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="quantity" render={({ field }) => ( <FormItem><FormLabel>数量</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                <FormField control={form.control} name="unit" render={({ field }) => ( <FormItem><FormLabel>単位</FormLabel><Select onValueChange={field.onChange} value={field.value}><FormControl><SelectTrigger><SelectValue placeholder="選択..." /></SelectTrigger></FormControl><SelectContent>{units.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="unit" render={({ field }) => ( <FormItem><FormLabel>単位</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={!isInfo1Editable}><FormControl><SelectTrigger><SelectValue placeholder="選択..." /></SelectTrigger></FormControl><SelectContent>{units.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
               </CardContent>
               <CardFooter className="flex justify-end">
                 <Button type="button" onClick={() => handleSaveSection(1)}>1次情報を登録</Button>
@@ -305,7 +292,7 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
                 </FormItem>
               </CardContent>
                <CardFooter className="flex justify-end">
-                <Button type="button" onClick={() => handleSaveSection(2)} disabled={!incidentToEdit?.infoInputDates?.info1}>2次情報を登録</Button>
+                <Button type="button" onClick={() => handleSaveSection(2)} disabled={!incidentToEdit}>2次情報を登録</Button>
               </CardFooter>
             </Card>
           </fieldset>
@@ -321,7 +308,7 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
                 <FormField control={form.control} name="recurrencePreventionMeasures" render={({ field }) => ( <FormItem><FormLabel>再発防止策</FormLabel><FormControl><Textarea {...field} rows={5} /></FormControl><FormMessage /></FormItem> )} />
               </CardContent>
               <CardFooter className="flex justify-end">
-                <Button type="button" onClick={() => handleSaveSection(3)} disabled={!incidentToEdit?.infoInputDates?.info2}>3次情報を登録</Button>
+                <Button type="button" onClick={() => handleSaveSection(3)} disabled={!incidentToEdit}>3次情報を登録</Button>
               </CardFooter>
             </Card>
           </fieldset>

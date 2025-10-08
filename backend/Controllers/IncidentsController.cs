@@ -139,29 +139,6 @@ namespace LogisticsTroubleManagement.Controllers
             return Ok(result);
         }
 
-        /// <summary>
-        /// インシデントのステータス更新
-        /// </summary>
-        /// <param name="id">インシデントID</param>
-        /// <param name="status">新しいステータス</param>
-        /// <returns>更新結果</returns>
-        [HttpPut("{id}/status")]
-        public async Task<ActionResult<ApiResponseDto<bool>>> UpdateIncidentStatus(int id, [FromBody] string status)
-        {
-            var userId = GetCurrentUserId();
-            var result = await _incidentService.UpdateIncidentStatusAsync(id, status, userId);
-            
-            if (!result.Success)
-            {
-                if (result.ErrorMessage?.Contains("見つかりません") == true)
-                {
-                    return NotFound(result);
-                }
-                return BadRequest(result);
-            }
-
-            return Ok(result);
-        }
 
         /// <summary>
         /// インシデントのCSV出力
