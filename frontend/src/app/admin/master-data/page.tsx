@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useApi';
 import { requireSystemAdmin } from '@/lib/auth';
@@ -102,7 +102,7 @@ export default function MasterDataManagementPage() {
   }, [user, authLoading, router, toast]);
 
   // データ取得
-  const fetchData = async (clearCache = false) => {
+  const fetchData = useCallback(async (clearCache = false) => {
     setLoading(true);
     try {
       // キャッシュをクリアする場合は、先にクリアしてからデータを取得
@@ -126,13 +126,13 @@ export default function MasterDataManagementPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedType, masterDataApi, toast]);
 
   useEffect(() => {
     if (user) {
       fetchData();
     }
-  }, [selectedType, user]);
+  }, [selectedType, user, fetchData]);
 
   // 検索フィルタリング
   const filteredData = data.filter(item =>
