@@ -71,14 +71,6 @@ export function useAuth() {
   const checkAuth = useCallback(async () => {
     setLoading(true);
     try {
-      
-      // ローカルストレージの内容を確認
-      if (typeof window !== 'undefined') {
-        const token = localStorage.getItem('ltm_auth_token');
-        const refreshToken = localStorage.getItem('ltm_refresh_token');
-        const expiry = localStorage.getItem('ltm_token_expiry');
-      }
-      
       if (authApi.isAuthenticated()) {
         const userData = await authApi.validateToken();
         setUser(userData);

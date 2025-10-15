@@ -104,6 +104,11 @@ namespace LogisticsTroubleManagement.DTOs
         public string Role { get; set; } = string.Empty;
 
         /// <summary>
+        /// ユーザーロールID
+        /// </summary>
+        public int UserRoleId { get; set; }
+
+        /// <summary>
         /// アクティブフラグ
         /// </summary>
         public bool IsActive { get; set; }

@@ -128,11 +128,12 @@ namespace LogisticsTroubleManagement.Services
 
             var claims = new List<Claim>
             {
-                new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new(ClaimTypes.Name, user.Username),
-                new(ClaimTypes.Role, user.Role),
-                new("display_name", user.DisplayName),
-                new("organization", user.Organization)
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.Name, user.Username),
+                new Claim(ClaimTypes.Role, user.Role),
+                new Claim("display_name", user.DisplayName),
+                new Claim("organization", user.Organization),
+                new Claim("UserRoleId", user.UserRoleId.ToString())
             };
 
             var tokenDescriptor = new SecurityTokenDescriptor

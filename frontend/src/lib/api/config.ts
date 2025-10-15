@@ -27,6 +27,8 @@ export const API_CONFIG = {
       TROUBLE_DETAIL_CATEGORIES: '/api/masterdata/trouble-detail-categories',
       USER_ROLES: '/api/masterdata/user-roles',
       INCIDENT_STATUSES: '/api/masterdata/incident-statuses',
+      UNITS: '/api/masterdata/units',
+      SYSTEM_PARAMETERS: '/api/masterdata/system-parameters',
     },
     USERS: {
       BASE: '/api/users',

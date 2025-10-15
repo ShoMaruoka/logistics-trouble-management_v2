@@ -27,7 +27,8 @@ namespace LogisticsTroubleManagement.Models
 
             // User マッピング
             CreateMap<User, UserResponseDto>()
-                .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.UserRole.RoleName));
+                .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.UserRole.RoleName))
+                .ForMember(dest => dest.UserRoleId, opt => opt.MapFrom(src => src.UserRoleId));
             CreateMap<CreateUserDto, User>()
                 .ForMember(dest => dest.Id, opt => opt.Ignore())
                 .ForMember(dest => dest.PasswordHash, opt => opt.Ignore())
