@@ -15,6 +15,11 @@ namespace LogisticsTroubleManagement.Helpers
         /// <returns>システム管理者の場合true</returns>
         public static bool IsSystemAdmin(User user)
         {
+            if (user == null)
+            {
+                throw new ArgumentNullException(nameof(user));
+            }
+            
             return user.UserRoleId == 1; // システム管理者のID
         }
 
@@ -25,6 +30,19 @@ namespace LogisticsTroubleManagement.Helpers
         /// <returns>システム管理者の場合true</returns>
         public static bool IsSystemAdmin(ClaimsPrincipal claims)
         {
+            // nullチェック
+            if (claims == null)
+            {
+                return false;
+            }
+
+            // 認証状態チェック
+            if (claims.Identity?.IsAuthenticated != true)
+            {
+                return false;
+            }
+
+            // 安全にUserRoleIdクレームを取得
             var userRoleIdClaim = claims.FindFirst("UserRoleId");
             if (userRoleIdClaim == null || !int.TryParse(userRoleIdClaim.Value, out int userRoleId))
             {
@@ -64,6 +82,11 @@ namespace LogisticsTroubleManagement.Helpers
         /// <exception cref="UnauthorizedAccessException">システム管理者でない場合</exception>
         public static void RequireSystemAdmin(ClaimsPrincipal claims)
         {
+            if (claims == null)
+            {
+                throw new UnauthorizedAccessException("システム管理者権限が必要です");
+            }
+
             if (!IsSystemAdmin(claims))
             {
                 throw new UnauthorizedAccessException("システム管理者権限が必要です");
@@ -77,6 +100,11 @@ namespace LogisticsTroubleManagement.Helpers
         /// <returns>ユーザーID（取得できない場合はnull）</returns>
         public static int? GetUserId(ClaimsPrincipal claims)
         {
+            if (claims == null)
+            {
+                return null;
+            }
+
             var userIdClaim = claims.FindFirst(ClaimTypes.NameIdentifier);
             if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out int userId))
             {
@@ -94,6 +122,11 @@ namespace LogisticsTroubleManagement.Helpers
         /// <exception cref="UnauthorizedAccessException">ユーザーIDが取得できない場合</exception>
         public static int GetUserIdRequired(ClaimsPrincipal claims)
         {
+            if (claims == null)
+            {
+                throw new UnauthorizedAccessException("ユーザーIDが見つかりません。");
+            }
+
             var userId = GetUserId(claims);
             if (userId == null)
             {
