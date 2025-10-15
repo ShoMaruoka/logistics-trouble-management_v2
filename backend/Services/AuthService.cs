@@ -133,7 +133,7 @@ namespace LogisticsTroubleManagement.Services
                 new Claim(ClaimTypes.Role, user.Role),
                 new Claim("display_name", user.DisplayName),
                 new Claim("organization", user.Organization),
-                new Claim("UserRoleId", user.UserRoleId.ToString())
+                new Claim("user_role_id", user.UserRoleId.ToString())
             };
 
             var tokenDescriptor = new SecurityTokenDescriptor

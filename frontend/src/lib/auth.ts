@@ -46,7 +46,9 @@ export const requireSystemAdmin = (user: UserResponse | null): void => {
  */
 export const getUserDisplayName = (user: UserResponse | null): string => {
   if (!user) return 'ゲスト';
-  return user.displayName || user.username;
+  if (user.displayName?.trim()) return user.displayName;
+  if (user.username?.trim()) return user.username;
+  return 'ゲスト';
 };
 
 /**

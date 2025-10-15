@@ -510,6 +510,7 @@ export class MasterDataApi {
     }
 
     // キャッシュをクリア
+    this.clearCache();
     return response.data;
   }
 

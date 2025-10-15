@@ -219,7 +219,7 @@
 **読み取り専用エンドポイント（認証不要）**
 - `GET /api/masterdata/organizations` - 組織一覧
 - `GET /api/masterdata/occurrence-locations` - 発生場所一覧
-- `GET /api/masterdata/shipping-warehouses` - 出荷元倉庫一覧
+- `GET /api/masterdata/warehouses` - 倉庫一覧
 - `GET /api/masterdata/shipping-companies` - 運送会社一覧
 - `GET /api/masterdata/trouble-categories` - トラブル区分一覧
 - `GET /api/masterdata/trouble-detail-categories` - トラブル詳細区分一覧
@@ -241,3 +241,12 @@
 
 ### 次のステップ
 Phase 3（統合・テスト）の実施により、本格運用に向けた最終検証を実施
+
+## 最新修正（2025年10月15日）
+
+### バグ修正
+✅ **updateOccurrenceLocation関数のキャッシュクリア修正**
+- `frontend/src/lib/api/masterData.ts`の`updateOccurrenceLocation`関数（508-520行）
+- キャッシュクリアのコメントはあったが、実際の`this.clearCache()`呼び出しが欠落していた問題を修正
+- 他の更新メソッドと一貫性を保つため、`this.clearCache()`を追加
+- リンターエラーなし、動作確認済み
