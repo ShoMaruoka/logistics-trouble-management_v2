@@ -239,6 +239,13 @@ namespace LogisticsTroubleManagement.DTOs
     public class SystemParameterCreateDto
     {
         /// <summary>
+        /// 名称
+        /// </summary>
+        [Required(ErrorMessage = "名称は必須です")]
+        [StringLength(50, ErrorMessage = "名称は50文字以内で入力してください")]
+        public string Name { get; set; } = string.Empty;
+
+        /// <summary>
         /// パラメータキー
         /// </summary>
         [Required(ErrorMessage = "パラメータキーは必須です")]
@@ -281,6 +288,13 @@ namespace LogisticsTroubleManagement.DTOs
         /// </summary>
         [Required(ErrorMessage = "IDは必須です")]
         public int Id { get; set; }
+
+        /// <summary>
+        /// 名称
+        /// </summary>
+        [Required(ErrorMessage = "名称は必須です")]
+        [StringLength(50, ErrorMessage = "名称は50文字以内で入力してください")]
+        public string Name { get; set; } = string.Empty;
 
         /// <summary>
         /// パラメータキー

@@ -1454,6 +1454,7 @@ namespace LogisticsTroubleManagement.Services
                     return ApiResponseDto<MasterDataItemDto>.ErrorResponse($"パラメータキー「{dto.ParameterKey}」は既に存在します");
                 }
 
+                systemParameter.Name = dto.Name;
                 systemParameter.ParameterKey = dto.ParameterKey;
                 systemParameter.ParameterValue = dto.ParameterValue;
                 systemParameter.Description = dto.Description;
@@ -1466,7 +1467,7 @@ namespace LogisticsTroubleManagement.Services
                 var result = new MasterDataItemDto
                 {
                     Id = systemParameter.Id,
-                    Name = systemParameter.ParameterKey, // パラメータキーを名前として使用
+                    Name = systemParameter.Name,
                     IsActive = systemParameter.IsActive,
                     CreatedAt = systemParameter.CreatedAt,
                     UpdatedAt = systemParameter.UpdatedAt
