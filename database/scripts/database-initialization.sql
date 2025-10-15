@@ -106,6 +106,7 @@ IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[�
 BEGIN
     CREATE TABLE システムパラメータ (
         ID INT IDENTITY(1,1) PRIMARY KEY,
+        名称 NVARCHAR(100) NOT NULL,
         パラメータキー NVARCHAR(100) NOT NULL UNIQUE,
         パラメータ値 NVARCHAR(500) NOT NULL,
         説明 NVARCHAR(1000),

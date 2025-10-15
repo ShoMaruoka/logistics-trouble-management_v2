@@ -43,7 +43,7 @@ namespace LogisticsTroubleManagement.Helpers
             }
 
             // 安全にUserRoleIdクレームを取得
-            var userRoleIdClaim = claims.FindFirst("UserRoleId");
+            var userRoleIdClaim = claims.FindFirst("user_role_id");
             if (userRoleIdClaim == null || !int.TryParse(userRoleIdClaim.Value, out int userRoleId))
             {
                 return false;

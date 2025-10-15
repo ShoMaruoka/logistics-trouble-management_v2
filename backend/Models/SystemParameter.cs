@@ -15,6 +15,13 @@ namespace LogisticsTroubleManagement.Models
         public int Id { get; set; }
 
         /// <summary>
+        /// パラメータ名
+        /// </summary>
+        [Required]
+        [MaxLength(100)]
+        public string Name { get; set; } = string.Empty;
+
+        /// <summary>
         /// パラメータキー
         /// </summary>
         [Required]

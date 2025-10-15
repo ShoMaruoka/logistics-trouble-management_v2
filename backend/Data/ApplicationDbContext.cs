@@ -303,6 +303,7 @@ namespace LogisticsTroubleManagement.Data
                 // テーブル名とカラム名のマッピング
                 entity.ToTable("システムパラメータ");
                 entity.Property(e => e.Id).HasColumnName("ID");
+                entity.Property(e => e.Name).HasColumnName("名称").IsRequired().HasMaxLength(100);
                 entity.Property(e => e.ParameterKey).HasColumnName("パラメータキー").IsRequired().HasMaxLength(100);
                 entity.Property(e => e.ParameterValue).HasColumnName("パラメータ値").IsRequired().HasMaxLength(500);
                 entity.Property(e => e.Description).HasColumnName("説明").HasMaxLength(1000);
