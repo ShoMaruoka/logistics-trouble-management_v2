@@ -17,10 +17,6 @@ namespace LogisticsTroubleManagement.Services
         /// </summary>
         Task<ApiResponseDto<MasterDataItemDto[]>> GetOccurrenceLocationsAsync();
 
-        /// <summary>
-        /// 出荷元倉庫一覧の取得
-        /// </summary>
-        Task<ApiResponseDto<MasterDataItemDto[]>> GetShippingWarehousesAsync();
 
         /// <summary>
         /// 運送会社一覧の取得

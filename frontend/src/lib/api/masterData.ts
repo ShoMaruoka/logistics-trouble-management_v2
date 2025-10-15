@@ -40,7 +40,7 @@ export class MasterDataApi {
       ] = await Promise.all([
         this._getOrganizations(),
         this._getOccurrenceLocations(),
-        this._getShippingWarehouses(),
+        this._getWarehouses(),
         this._getShippingCompanies(),
         this._getTroubleCategories(),
         this._getTroubleDetailCategories(),
@@ -138,39 +138,33 @@ export class MasterDataApi {
   }
 
   /**
-   * 出荷元倉庫一覧を取得（プライベート）
+   * 倉庫一覧を取得（プライベート）
    */
-  private async _getShippingWarehouses(): Promise<MasterDataItem[]> {
+  private async _getWarehouses(): Promise<MasterDataItem[]> {
     const response = await apiClient.get<ApiResponse<MasterDataItem[]>>(
-      API_CONFIG.ENDPOINTS.MASTER_DATA.SHIPPING_WAREHOUSES
+      API_CONFIG.ENDPOINTS.MASTER_DATA.WAREHOUSES
     );
 
     if (!response.success || !response.data) {
-      throw new Error(response.errorMessage || '出荷元倉庫データの取得に失敗しました');
+      throw new Error(response.errorMessage || '倉庫データの取得に失敗しました');
     }
 
     return response.data;
   }
 
   /**
-   * 出荷元倉庫一覧を取得
+   * 倉庫一覧を取得
    */
-  async getShippingWarehouses(): Promise<MasterDataItem[]> {
-    const response = await apiClient.get<ApiResponse<string[]>>(
-      API_CONFIG.ENDPOINTS.MASTER_DATA.SHIPPING_WAREHOUSES
+  async getWarehouses(): Promise<MasterDataItem[]> {
+    const response = await apiClient.get<ApiResponse<MasterDataItem[]>>(
+      API_CONFIG.ENDPOINTS.MASTER_DATA.WAREHOUSES
     );
 
     if (!response.success || !response.data) {
-      throw new Error(response.errorMessage || '出荷元倉庫データの取得に失敗しました');
+      throw new Error(response.errorMessage || '倉庫データの取得に失敗しました');
     }
 
-    return response.data.map((name, index) => ({
-      id: index + 1,
-      name,
-      isActive: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }));
+    return response.data;
   }
 
   /**

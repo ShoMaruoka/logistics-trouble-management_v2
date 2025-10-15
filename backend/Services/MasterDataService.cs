@@ -79,34 +79,6 @@ namespace LogisticsTroubleManagement.Services
             }
         }
 
-        /// <summary>
-        /// 出荷元倉庫一覧の取得
-        /// </summary>
-        public async Task<ApiResponseDto<MasterDataItemDto[]>> GetShippingWarehousesAsync()
-        {
-            try
-            {
-                var warehouses = await _context.Warehouses
-                    .Where(w => w.IsActive)
-                    .OrderBy(w => w.Id)
-                    .Select(w => new MasterDataItemDto
-                    {
-                        Id = w.Id,
-                        Name = w.Name,
-                        IsActive = w.IsActive,
-                        CreatedAt = w.CreatedAt,
-                        UpdatedAt = w.UpdatedAt
-                    })
-                    .ToArrayAsync();
-
-                return ApiResponseDto<MasterDataItemDto[]>.SuccessResponse(warehouses);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "出荷元倉庫一覧の取得中にエラーが発生しました");
-                return ApiResponseDto<MasterDataItemDto[]>.ErrorResponse("出荷元倉庫一覧の取得に失敗しました");
-            }
-        }
 
         /// <summary>
         /// 運送会社一覧の取得
@@ -210,8 +182,8 @@ namespace LogisticsTroubleManagement.Services
                         Id = r.Id,
                         Name = r.RoleName,
                         IsActive = true, // UserRoleにはIsActiveフィールドがないためtrueを設定
-                        CreatedAt = DateTime.UtcNow, // UserRoleには作成日時フィールドがないため現在時刻を設定
-                        UpdatedAt = DateTime.UtcNow  // UserRoleには更新日時フィールドがないため現在時刻を設定
+                        CreatedAt = r.CreatedAt, // UserRoleエンティティのCreatedAtフィールドを使用
+                        UpdatedAt = null // UserRoleにはUpdatedAtフィールドがないためnullを設定
                     })
                     .ToArrayAsync();
 
@@ -348,6 +320,22 @@ namespace LogisticsTroubleManagement.Services
         {
             try
             {
+                // 1. Name非空チェック
+                if (string.IsNullOrWhiteSpace(dto.Name))
+                {
+                    _logger.LogWarning("組織作成失敗: Nameが空です (UserId: {UserId})", userId);
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse("組織名は必須です");
+                }
+
+                // 2. 一意性チェック
+                var existingOrganization = await _context.Organizations
+                    .AnyAsync(o => o.Name == dto.Name);
+                if (existingOrganization)
+                {
+                    _logger.LogWarning("組織作成失敗: 重複する組織名です - {Name} (UserId: {UserId})", dto.Name, userId);
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse($"組織名「{dto.Name}」は既に存在します");
+                }
+
                 var organization = new Organization
                 {
                     Name = dto.Name,
@@ -385,10 +373,26 @@ namespace LogisticsTroubleManagement.Services
         {
             try
             {
+                // 1. Name非空チェック
+                if (string.IsNullOrWhiteSpace(dto.Name))
+                {
+                    _logger.LogWarning("組織更新失敗: Nameが空です (Id: {Id}, UserId: {UserId})", dto.Id, userId);
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse("組織名は必須です");
+                }
+
                 var organization = await _context.Organizations.FindAsync(dto.Id);
                 if (organization == null)
                 {
                     return ApiResponseDto<MasterDataItemDto>.ErrorResponse("指定された組織が見つかりません");
+                }
+
+                // 2. 一意性チェック（同じIdを除外）
+                var existingOrganization = await _context.Organizations
+                    .AnyAsync(o => o.Name == dto.Name && o.Id != dto.Id);
+                if (existingOrganization)
+                {
+                    _logger.LogWarning("組織更新失敗: 重複する組織名です - {Name} (Id: {Id}, UserId: {UserId})", dto.Name, dto.Id, userId);
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse($"組織名「{dto.Name}」は既に存在します");
                 }
 
                 organization.Name = dto.Name;
@@ -429,6 +433,15 @@ namespace LogisticsTroubleManagement.Services
                     return ApiResponseDto<bool>.ErrorResponse("指定された組織が見つかりません");
                 }
 
+                // 参照整合性チェック - インシデントで参照されているかチェック
+                var hasReferences = await _context.Incidents
+                    .AnyAsync(i => i.Organization == id);
+                if (hasReferences)
+                {
+                    _logger.LogWarning("組織削除失敗: インシデントで参照されています (Id: {Id}, UserId: {UserId})", id, userId);
+                    return ApiResponseDto<bool>.ErrorResponse("この組織はインシデントで使用されているため削除できません");
+                }
+
                 organization.IsActive = false;
                 organization.UpdatedAt = DateTime.UtcNow;
 
@@ -451,6 +464,22 @@ namespace LogisticsTroubleManagement.Services
         {
             try
             {
+                // 1. Name非空チェック
+                if (string.IsNullOrWhiteSpace(dto.Name))
+                {
+                    _logger.LogWarning("発生場所作成失敗: Nameが空です (UserId: {UserId})", userId);
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse("発生場所名は必須です");
+                }
+
+                // 2. 一意性チェック
+                var existingLocation = await _context.OccurrenceLocations
+                    .AnyAsync(l => l.Name == dto.Name);
+                if (existingLocation)
+                {
+                    _logger.LogWarning("発生場所作成失敗: 重複する発生場所名です - {Name} (UserId: {UserId})", dto.Name, userId);
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse($"発生場所名「{dto.Name}」は既に存在します");
+                }
+
                 var location = new OccurrenceLocation
                 {
                     Name = dto.Name,
@@ -488,10 +517,26 @@ namespace LogisticsTroubleManagement.Services
         {
             try
             {
+                // 1. Name非空チェック
+                if (string.IsNullOrWhiteSpace(dto.Name))
+                {
+                    _logger.LogWarning("発生場所更新失敗: Nameが空です (Id: {Id}, UserId: {UserId})", dto.Id, userId);
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse("発生場所名は必須です");
+                }
+
                 var location = await _context.OccurrenceLocations.FindAsync(dto.Id);
                 if (location == null)
                 {
                     return ApiResponseDto<MasterDataItemDto>.ErrorResponse("指定された発生場所が見つかりません");
+                }
+
+                // 2. 一意性チェック（同じIdを除外）
+                var existingLocation = await _context.OccurrenceLocations
+                    .AnyAsync(l => l.Name == dto.Name && l.Id != dto.Id);
+                if (existingLocation)
+                {
+                    _logger.LogWarning("発生場所更新失敗: 重複する発生場所名です - {Name} (Id: {Id}, UserId: {UserId})", dto.Name, dto.Id, userId);
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse($"発生場所名「{dto.Name}」は既に存在します");
                 }
 
                 location.Name = dto.Name;
@@ -532,6 +577,15 @@ namespace LogisticsTroubleManagement.Services
                     return ApiResponseDto<bool>.ErrorResponse("指定された発生場所が見つかりません");
                 }
 
+                // 参照整合性チェック - インシデントで参照されているかチェック
+                var hasReferences = await _context.Incidents
+                    .AnyAsync(i => i.OccurrenceLocation == id);
+                if (hasReferences)
+                {
+                    _logger.LogWarning("発生場所削除失敗: インシデントで参照されています (Id: {Id}, UserId: {UserId})", id, userId);
+                    return ApiResponseDto<bool>.ErrorResponse("この発生場所はインシデントで使用されているため削除できません");
+                }
+
                 location.IsActive = false;
                 location.UpdatedAt = DateTime.UtcNow;
 
@@ -554,6 +608,22 @@ namespace LogisticsTroubleManagement.Services
         {
             try
             {
+                // 1. Name非空チェック
+                if (string.IsNullOrWhiteSpace(dto.Name))
+                {
+                    _logger.LogWarning("倉庫作成失敗: Nameが空です (UserId: {UserId})", userId);
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse("倉庫名は必須です");
+                }
+
+                // 2. 一意性チェック
+                var existingWarehouse = await _context.Warehouses
+                    .AnyAsync(w => w.Name == dto.Name);
+                if (existingWarehouse)
+                {
+                    _logger.LogWarning("倉庫作成失敗: 重複する倉庫名です - {Name} (UserId: {UserId})", dto.Name, userId);
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse($"倉庫名「{dto.Name}」は既に存在します");
+                }
+
                 var warehouse = new Warehouse
                 {
                     Name = dto.Name,
@@ -591,10 +661,26 @@ namespace LogisticsTroubleManagement.Services
         {
             try
             {
+                // 1. Name非空チェック
+                if (string.IsNullOrWhiteSpace(dto.Name))
+                {
+                    _logger.LogWarning("倉庫更新失敗: Nameが空です (Id: {Id}, UserId: {UserId})", dto.Id, userId);
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse("倉庫名は必須です");
+                }
+
                 var warehouse = await _context.Warehouses.FindAsync(dto.Id);
                 if (warehouse == null)
                 {
                     return ApiResponseDto<MasterDataItemDto>.ErrorResponse("指定された倉庫が見つかりません");
+                }
+
+                // 2. 一意性チェック（同じIdを除外）
+                var existingWarehouse = await _context.Warehouses
+                    .AnyAsync(w => w.Name == dto.Name && w.Id != dto.Id);
+                if (existingWarehouse)
+                {
+                    _logger.LogWarning("倉庫更新失敗: 重複する倉庫名です - {Name} (Id: {Id}, UserId: {UserId})", dto.Name, dto.Id, userId);
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse($"倉庫名「{dto.Name}」は既に存在します");
                 }
 
                 warehouse.Name = dto.Name;
@@ -635,6 +721,15 @@ namespace LogisticsTroubleManagement.Services
                     return ApiResponseDto<bool>.ErrorResponse("指定された倉庫が見つかりません");
                 }
 
+                // 参照整合性チェック - インシデントで参照されているかチェック
+                var hasReferences = await _context.Incidents
+                    .AnyAsync(i => i.ShippingWarehouse == id);
+                if (hasReferences)
+                {
+                    _logger.LogWarning("倉庫削除失敗: インシデントで参照されています (Id: {Id}, UserId: {UserId})", id, userId);
+                    return ApiResponseDto<bool>.ErrorResponse("この倉庫はインシデントで使用されているため削除できません");
+                }
+
                 warehouse.IsActive = false;
                 warehouse.UpdatedAt = DateTime.UtcNow;
 
@@ -662,6 +757,22 @@ namespace LogisticsTroubleManagement.Services
         {
             try
             {
+                // 1. Name非空チェック
+                if (string.IsNullOrWhiteSpace(dto.Name))
+                {
+                    _logger.LogWarning("運送会社作成失敗: Nameが空です (UserId: {UserId})", userId);
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse("運送会社名は必須です");
+                }
+
+                // 2. 一意性チェック
+                var existingShippingCompany = await _context.ShippingCompanies
+                    .AnyAsync(sc => sc.Name == dto.Name);
+                if (existingShippingCompany)
+                {
+                    _logger.LogWarning("運送会社作成失敗: 重複する運送会社名です - {Name} (UserId: {UserId})", dto.Name, userId);
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse($"運送会社名「{dto.Name}」は既に存在します");
+                }
+
                 var shippingCompany = new ShippingCompany
                 {
                     Name = dto.Name,
@@ -699,10 +810,26 @@ namespace LogisticsTroubleManagement.Services
         {
             try
             {
+                // 1. Name非空チェック
+                if (string.IsNullOrWhiteSpace(dto.Name))
+                {
+                    _logger.LogWarning("運送会社更新失敗: Nameが空です (Id: {Id}, UserId: {UserId})", dto.Id, userId);
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse("運送会社名は必須です");
+                }
+
                 var shippingCompany = await _context.ShippingCompanies.FindAsync(dto.Id);
                 if (shippingCompany == null)
                 {
                     return ApiResponseDto<MasterDataItemDto>.ErrorResponse("運送会社が見つかりません");
+                }
+
+                // 2. 一意性チェック（同じIdを除外）
+                var existingShippingCompany = await _context.ShippingCompanies
+                    .AnyAsync(sc => sc.Name == dto.Name && sc.Id != dto.Id);
+                if (existingShippingCompany)
+                {
+                    _logger.LogWarning("運送会社更新失敗: 重複する運送会社名です - {Name} (Id: {Id}, UserId: {UserId})", dto.Name, dto.Id, userId);
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse($"運送会社名「{dto.Name}」は既に存在します");
                 }
 
                 shippingCompany.Name = dto.Name;
@@ -743,6 +870,15 @@ namespace LogisticsTroubleManagement.Services
                     return ApiResponseDto<bool>.ErrorResponse("運送会社が見つかりません");
                 }
 
+                // 参照整合性チェック - インシデントで参照されているかチェック
+                var hasReferences = await _context.Incidents
+                    .AnyAsync(i => i.ShippingCompany == id);
+                if (hasReferences)
+                {
+                    _logger.LogWarning("運送会社削除失敗: インシデントで参照されています (Id: {Id}, UserId: {UserId})", id, userId);
+                    return ApiResponseDto<bool>.ErrorResponse("この運送会社はインシデントで使用されているため削除できません");
+                }
+
                 shippingCompany.IsActive = false;
                 shippingCompany.UpdatedAt = DateTime.UtcNow;
 
@@ -765,6 +901,22 @@ namespace LogisticsTroubleManagement.Services
         {
             try
             {
+                // 1. Name非空チェック
+                if (string.IsNullOrWhiteSpace(dto.Name))
+                {
+                    _logger.LogWarning("トラブル区分作成失敗: Nameが空です (UserId: {UserId})", userId);
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse("トラブル区分名は必須です");
+                }
+
+                // 2. 一意性チェック
+                var existingTroubleCategory = await _context.TroubleCategories
+                    .AnyAsync(tc => tc.Name == dto.Name);
+                if (existingTroubleCategory)
+                {
+                    _logger.LogWarning("トラブル区分作成失敗: 重複するトラブル区分名です - {Name} (UserId: {UserId})", dto.Name, userId);
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse($"トラブル区分名「{dto.Name}」は既に存在します");
+                }
+
                 var troubleCategory = new TroubleCategory
                 {
                     Name = dto.Name,
@@ -802,10 +954,26 @@ namespace LogisticsTroubleManagement.Services
         {
             try
             {
+                // 1. Name非空チェック
+                if (string.IsNullOrWhiteSpace(dto.Name))
+                {
+                    _logger.LogWarning("トラブル区分更新失敗: Nameが空です (Id: {Id}, UserId: {UserId})", dto.Id, userId);
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse("トラブル区分名は必須です");
+                }
+
                 var troubleCategory = await _context.TroubleCategories.FindAsync(dto.Id);
                 if (troubleCategory == null)
                 {
                     return ApiResponseDto<MasterDataItemDto>.ErrorResponse("トラブル区分が見つかりません");
+                }
+
+                // 2. 一意性チェック（同じIdを除外）
+                var existingTroubleCategory = await _context.TroubleCategories
+                    .AnyAsync(tc => tc.Name == dto.Name && tc.Id != dto.Id);
+                if (existingTroubleCategory)
+                {
+                    _logger.LogWarning("トラブル区分更新失敗: 重複するトラブル区分名です - {Name} (Id: {Id}, UserId: {UserId})", dto.Name, dto.Id, userId);
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse($"トラブル区分名「{dto.Name}」は既に存在します");
                 }
 
                 troubleCategory.Name = dto.Name;
@@ -846,6 +1014,18 @@ namespace LogisticsTroubleManagement.Services
                     return ApiResponseDto<bool>.ErrorResponse("トラブル区分が見つかりません");
                 }
 
+                // 参照整合性チェック - インシデントまたはトラブル詳細区分で参照されているかチェック
+                var hasIncidentReferences = await _context.Incidents
+                    .AnyAsync(i => i.TroubleCategory == id);
+                var hasDetailCategoryReferences = await _context.TroubleDetailCategories
+                    .AnyAsync(tdc => tdc.TroubleCategoryId == id);
+                
+                if (hasIncidentReferences || hasDetailCategoryReferences)
+                {
+                    _logger.LogWarning("トラブル区分削除失敗: インシデントまたはトラブル詳細区分で参照されています (Id: {Id}, UserId: {UserId})", id, userId);
+                    return ApiResponseDto<bool>.ErrorResponse("このトラブル区分はインシデントまたはトラブル詳細区分で使用されているため削除できません");
+                }
+
                 troubleCategory.IsActive = false;
                 troubleCategory.UpdatedAt = DateTime.UtcNow;
 
@@ -868,6 +1048,31 @@ namespace LogisticsTroubleManagement.Services
         {
             try
             {
+                // 1. Name非空チェック
+                if (string.IsNullOrWhiteSpace(dto.Name))
+                {
+                    _logger.LogWarning("トラブル詳細区分作成失敗: Nameが空です (UserId: {UserId})", userId);
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse("トラブル詳細区分名は必須です");
+                }
+
+                // 2. TroubleCategoryId存在チェック
+                var troubleCategoryExists = await _context.TroubleCategories
+                    .AnyAsync(tc => tc.Id == dto.TroubleCategoryId);
+                if (!troubleCategoryExists)
+                {
+                    _logger.LogWarning("トラブル詳細区分作成失敗: 存在しないトラブル区分IDです - {TroubleCategoryId} (UserId: {UserId})", dto.TroubleCategoryId, userId);
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse($"指定されたトラブル区分ID（{dto.TroubleCategoryId}）は存在しません");
+                }
+
+                // 3. 一意性チェック
+                var existingTroubleDetailCategory = await _context.TroubleDetailCategories
+                    .AnyAsync(tdc => tdc.Name == dto.Name);
+                if (existingTroubleDetailCategory)
+                {
+                    _logger.LogWarning("トラブル詳細区分作成失敗: 重複するトラブル詳細区分名です - {Name} (UserId: {UserId})", dto.Name, userId);
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse($"トラブル詳細区分名「{dto.Name}」は既に存在します");
+                }
+
                 var troubleDetailCategory = new TroubleDetailCategory
                 {
                     Name = dto.Name,
@@ -906,10 +1111,35 @@ namespace LogisticsTroubleManagement.Services
         {
             try
             {
+                // 1. Name非空チェック
+                if (string.IsNullOrWhiteSpace(dto.Name))
+                {
+                    _logger.LogWarning("トラブル詳細区分更新失敗: Nameが空です (Id: {Id}, UserId: {UserId})", dto.Id, userId);
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse("トラブル詳細区分名は必須です");
+                }
+
                 var troubleDetailCategory = await _context.TroubleDetailCategories.FindAsync(dto.Id);
                 if (troubleDetailCategory == null)
                 {
                     return ApiResponseDto<MasterDataItemDto>.ErrorResponse("トラブル詳細区分が見つかりません");
+                }
+
+                // 2. TroubleCategoryId存在チェック
+                var troubleCategoryExists = await _context.TroubleCategories
+                    .AnyAsync(tc => tc.Id == dto.TroubleCategoryId);
+                if (!troubleCategoryExists)
+                {
+                    _logger.LogWarning("トラブル詳細区分更新失敗: 存在しないトラブル区分IDです - {TroubleCategoryId} (Id: {Id}, UserId: {UserId})", dto.TroubleCategoryId, dto.Id, userId);
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse($"指定されたトラブル区分ID（{dto.TroubleCategoryId}）は存在しません");
+                }
+
+                // 3. 一意性チェック（同じIdを除外）
+                var existingTroubleDetailCategory = await _context.TroubleDetailCategories
+                    .AnyAsync(tdc => tdc.Name == dto.Name && tdc.Id != dto.Id);
+                if (existingTroubleDetailCategory)
+                {
+                    _logger.LogWarning("トラブル詳細区分更新失敗: 重複するトラブル詳細区分名です - {Name} (Id: {Id}, UserId: {UserId})", dto.Name, dto.Id, userId);
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse($"トラブル詳細区分名「{dto.Name}」は既に存在します");
                 }
 
                 troubleDetailCategory.Name = dto.Name;
@@ -951,6 +1181,15 @@ namespace LogisticsTroubleManagement.Services
                     return ApiResponseDto<bool>.ErrorResponse("トラブル詳細区分が見つかりません");
                 }
 
+                // 参照整合性チェック - インシデントで参照されているかチェック
+                var hasReferences = await _context.Incidents
+                    .AnyAsync(i => i.TroubleDetailCategory == id);
+                if (hasReferences)
+                {
+                    _logger.LogWarning("トラブル詳細区分削除失敗: インシデントで参照されています (Id: {Id}, UserId: {UserId})", id, userId);
+                    return ApiResponseDto<bool>.ErrorResponse("このトラブル詳細区分はインシデントで使用されているため削除できません");
+                }
+
                 troubleDetailCategory.IsActive = false;
                 troubleDetailCategory.UpdatedAt = DateTime.UtcNow;
 
@@ -973,6 +1212,31 @@ namespace LogisticsTroubleManagement.Services
         {
             try
             {
+                // 1. Name非空チェック
+                if (string.IsNullOrWhiteSpace(dto.Name))
+                {
+                    _logger.LogWarning("単位作成失敗: Nameが空です (UserId: {UserId})", userId);
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse("単位名は必須です");
+                }
+
+                // 2. 一意性チェック（Name）
+                var existingUnitByName = await _context.Units
+                    .AnyAsync(u => u.Name == dto.Name);
+                if (existingUnitByName)
+                {
+                    _logger.LogWarning("単位作成失敗: 重複する単位名です - {Name} (UserId: {UserId})", dto.Name, userId);
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse($"単位名「{dto.Name}」は既に存在します");
+                }
+
+                // 3. 一意性チェック（Code）
+                var existingUnitByCode = await _context.Units
+                    .AnyAsync(u => u.Code == dto.Code);
+                if (existingUnitByCode)
+                {
+                    _logger.LogWarning("単位作成失敗: 重複する単位コードです - {Code} (UserId: {UserId})", dto.Code, userId);
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse($"単位コード「{dto.Code}」は既に存在します");
+                }
+
                 var unit = new Unit
                 {
                     Code = dto.Code,
@@ -1011,10 +1275,35 @@ namespace LogisticsTroubleManagement.Services
         {
             try
             {
+                // 1. Name非空チェック
+                if (string.IsNullOrWhiteSpace(dto.Name))
+                {
+                    _logger.LogWarning("単位更新失敗: Nameが空です (Id: {Id}, UserId: {UserId})", dto.Id, userId);
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse("単位名は必須です");
+                }
+
                 var unit = await _context.Units.FindAsync(dto.Id);
                 if (unit == null)
                 {
                     return ApiResponseDto<MasterDataItemDto>.ErrorResponse("単位が見つかりません");
+                }
+
+                // 2. 一意性チェック（Name、同じIdを除外）
+                var existingUnitByName = await _context.Units
+                    .AnyAsync(u => u.Name == dto.Name && u.Id != dto.Id);
+                if (existingUnitByName)
+                {
+                    _logger.LogWarning("単位更新失敗: 重複する単位名です - {Name} (Id: {Id}, UserId: {UserId})", dto.Name, dto.Id, userId);
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse($"単位名「{dto.Name}」は既に存在します");
+                }
+
+                // 3. 一意性チェック（Code、同じIdを除外）
+                var existingUnitByCode = await _context.Units
+                    .AnyAsync(u => u.Code == dto.Code && u.Id != dto.Id);
+                if (existingUnitByCode)
+                {
+                    _logger.LogWarning("単位更新失敗: 重複する単位コードです - {Code} (Id: {Id}, UserId: {UserId})", dto.Code, dto.Id, userId);
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse($"単位コード「{dto.Code}」は既に存在します");
                 }
 
                 unit.Code = dto.Code;
@@ -1056,6 +1345,15 @@ namespace LogisticsTroubleManagement.Services
                     return ApiResponseDto<bool>.ErrorResponse("単位が見つかりません");
                 }
 
+                // 参照整合性チェック - インシデントで参照されているかチェック
+                var hasReferences = await _context.Incidents
+                    .AnyAsync(i => i.Unit == id);
+                if (hasReferences)
+                {
+                    _logger.LogWarning("単位削除失敗: インシデントで参照されています (Id: {Id}, UserId: {UserId})", id, userId);
+                    return ApiResponseDto<bool>.ErrorResponse("この単位はインシデントで使用されているため削除できません");
+                }
+
                 unit.IsActive = false;
                 unit.UpdatedAt = DateTime.UtcNow;
 
@@ -1078,6 +1376,22 @@ namespace LogisticsTroubleManagement.Services
         {
             try
             {
+                // 1. ParameterKey非空チェック
+                if (string.IsNullOrWhiteSpace(dto.ParameterKey))
+                {
+                    _logger.LogWarning("システムパラメータ作成失敗: ParameterKeyが空です (UserId: {UserId})", userId);
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse("パラメータキーは必須です");
+                }
+
+                // 2. 一意性チェック（ParameterKey）
+                var existingSystemParameter = await _context.SystemParameters
+                    .AnyAsync(sp => sp.ParameterKey == dto.ParameterKey);
+                if (existingSystemParameter)
+                {
+                    _logger.LogWarning("システムパラメータ作成失敗: 重複するパラメータキーです - {ParameterKey} (UserId: {UserId})", dto.ParameterKey, userId);
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse($"パラメータキー「{dto.ParameterKey}」は既に存在します");
+                }
+
                 var systemParameter = new SystemParameter
                 {
                     ParameterKey = dto.ParameterKey,
@@ -1118,10 +1432,26 @@ namespace LogisticsTroubleManagement.Services
         {
             try
             {
+                // 1. ParameterKey非空チェック
+                if (string.IsNullOrWhiteSpace(dto.ParameterKey))
+                {
+                    _logger.LogWarning("システムパラメータ更新失敗: ParameterKeyが空です (Id: {Id}, UserId: {UserId})", dto.Id, userId);
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse("パラメータキーは必須です");
+                }
+
                 var systemParameter = await _context.SystemParameters.FindAsync(dto.Id);
                 if (systemParameter == null)
                 {
                     return ApiResponseDto<MasterDataItemDto>.ErrorResponse("システムパラメータが見つかりません");
+                }
+
+                // 2. 一意性チェック（ParameterKey、同じIdを除外）
+                var existingSystemParameter = await _context.SystemParameters
+                    .AnyAsync(sp => sp.ParameterKey == dto.ParameterKey && sp.Id != dto.Id);
+                if (existingSystemParameter)
+                {
+                    _logger.LogWarning("システムパラメータ更新失敗: 重複するパラメータキーです - {ParameterKey} (Id: {Id}, UserId: {UserId})", dto.ParameterKey, dto.Id, userId);
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse($"パラメータキー「{dto.ParameterKey}」は既に存在します");
                 }
 
                 systemParameter.ParameterKey = dto.ParameterKey;
@@ -1164,6 +1494,9 @@ namespace LogisticsTroubleManagement.Services
                 {
                     return ApiResponseDto<bool>.ErrorResponse("システムパラメータが見つかりません");
                 }
+
+                // システムパラメータは他のテーブルから参照されていないため、参照整合性チェックは不要
+                // ただし、重要なシステムパラメータの削除を防ぐための追加チェックは可能
 
                 systemParameter.IsActive = false;
                 systemParameter.UpdatedAt = DateTime.UtcNow;

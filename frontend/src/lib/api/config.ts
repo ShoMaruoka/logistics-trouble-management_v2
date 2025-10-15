@@ -21,7 +21,7 @@ export const API_CONFIG = {
       BASE: '/api/masterdata',
       ORGANIZATIONS: '/api/masterdata/organizations',
       OCCURRENCE_LOCATIONS: '/api/masterdata/occurrence-locations',
-      SHIPPING_WAREHOUSES: '/api/masterdata/shipping-warehouses',
+      WAREHOUSES: '/api/masterdata/warehouses',
       SHIPPING_COMPANIES: '/api/masterdata/shipping-companies',
       TROUBLE_CATEGORIES: '/api/masterdata/trouble-categories',
       TROUBLE_DETAIL_CATEGORIES: '/api/masterdata/trouble-detail-categories',

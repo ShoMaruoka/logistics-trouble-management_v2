@@ -75,7 +75,7 @@ import { masterDataApi } from '@/lib/api';
 const masterData = await masterDataApi.getAllMasterData();
 
 // 特定のマスターデータの取得
-const warehouses = await masterDataApi.getShippingWarehouses();
+const warehouses = await masterDataApi.getWarehouses();
 const categories = await masterDataApi.getTroubleCategories();
 ```
 

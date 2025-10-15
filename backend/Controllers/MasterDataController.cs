@@ -59,22 +59,6 @@ namespace LogisticsTroubleManagement.Controllers
             return Ok(result);
         }
 
-        /// <summary>
-        /// 出荷元倉庫一覧の取得
-        /// </summary>
-        /// <returns>出荷元倉庫一覧</returns>
-        [HttpGet("shipping-warehouses")]
-        public async Task<ActionResult<ApiResponseDto<MasterDataItemDto[]>>> GetShippingWarehouses()
-        {
-            var result = await _masterDataService.GetShippingWarehousesAsync();
-            
-            if (!result.Success)
-            {
-                return BadRequest(result);
-            }
-
-            return Ok(result);
-        }
 
         /// <summary>
         /// 運送会社一覧の取得
