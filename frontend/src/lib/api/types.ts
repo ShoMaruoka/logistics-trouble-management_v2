@@ -39,8 +39,8 @@ export interface UserResponse {
   userRoleId: number; // システム管理者判定用
   organization: string;
   isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
   lastLoginAt?: string;
 }
 
@@ -96,8 +96,8 @@ export interface IncidentResponse {
   inputDate3?: string;
   recurrencePreventionMeasures?: string;
   status: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface IncidentSearchRequest {
@@ -148,8 +148,8 @@ export interface MasterDataItem {
   description?: string;
   isActive: boolean;
   sortOrder?: number;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // トラブル詳細区分専用の型（親区分IDを含む）
@@ -158,7 +158,7 @@ export interface TroubleDetailCategoryItem extends MasterDataItem {
 }
 
 // 単位専用の型（コードを含む）
-export interface UnitItem extends MasterDataItem {
+export interface UnitItem extends Omit<MasterDataItem, 'code'> {
   code: string;
 }
 

@@ -38,8 +38,8 @@ export function convertApiIncidentToFrontend(apiIncident: IncidentResponse, mast
     inputDate3: apiIncident.inputDate3?.split('T')[0],
     recurrencePreventionMeasures: apiIncident.recurrencePreventionMeasures,
     status: apiIncident.status as Incident['status'],
-    createdAt: apiIncident.createdAt,
-    updatedAt: apiIncident.updatedAt,
+    createdAt: apiIncident.createdAt || undefined,
+    updatedAt: apiIncident.updatedAt || undefined,
   };
 
 

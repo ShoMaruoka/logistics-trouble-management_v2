@@ -460,7 +460,7 @@ export default function MasterDataManagementPage() {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            {new Date(item.createdAt).toLocaleDateString('ja-JP')}
+                            {item.createdAt ? new Date(item.createdAt).toLocaleDateString('ja-JP') : '-'}
                           </TableCell>
                           <TableCell>
                             <div className="flex space-x-2">
