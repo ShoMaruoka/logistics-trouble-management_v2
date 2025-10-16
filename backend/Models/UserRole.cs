@@ -24,7 +24,7 @@ namespace LogisticsTroubleManagement.Models
         /// <summary>
         /// 作成日時
         /// </summary>
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; }
 
         // ナビゲーションプロパティ
         /// <summary>

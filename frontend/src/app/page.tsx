@@ -37,6 +37,7 @@ import { useApi, useAuth, useMasterData } from "@/hooks/useApi";
 import { incidentsApi } from "@/lib/api";
 import { convertApiIncidentToFrontend, convertFrontendIncidentToApiUpdateRequest, convertFrontendIncidentToApiCreateRequest } from "@/lib/apiAdapter";
 import { LoginForm } from "@/components/login-form";
+// import { HeaderNavigation } from "@/components/HeaderNavigation";
 
 
 const barChartConfig = troubleDetailCategories.reduce((acc, category, index) => {
@@ -431,8 +432,7 @@ export default function Home() {
             </CardContent>
         </Card>
     );
-};
-
+  };
 
   // ローディング状態の表示
   if (authLoading || masterDataLoading) {
@@ -491,7 +491,7 @@ export default function Home() {
         </div>
       </header>
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>{editingIncident ? '物流トラブルの編集' : '物流品質トラブルの登録'}</DialogTitle>
@@ -506,7 +506,6 @@ export default function Home() {
           />
         </DialogContent>
       </Dialog>
-
 
       <main className="container mx-auto p-4 md:p-6 space-y-6">
         <Card>

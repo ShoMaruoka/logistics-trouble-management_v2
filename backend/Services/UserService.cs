@@ -144,8 +144,10 @@ namespace LogisticsTroubleManagement.Services
                 // 更新可能なプロパティのみ更新
                 if (!string.IsNullOrEmpty(updateDto.DisplayName))
                     user.DisplayName = updateDto.DisplayName;
-                if (!string.IsNullOrEmpty(updateDto.Organization))
-                    user.Organization = updateDto.Organization;
+                if (updateDto.OrganizationId.HasValue)
+                    user.OrganizationId = updateDto.OrganizationId.Value;
+                if (updateDto.DefaultWarehouseId.HasValue)
+                    user.DefaultWarehouseId = updateDto.DefaultWarehouseId.Value;
                 if (updateDto.UserRoleId.HasValue)
                     user.UserRoleId = updateDto.UserRoleId.Value;
                 if (updateDto.IsActive.HasValue)

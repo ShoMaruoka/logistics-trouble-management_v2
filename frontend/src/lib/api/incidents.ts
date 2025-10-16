@@ -29,11 +29,11 @@ export class IncidentsApi {
     }
 
     return {
-      incidents: response.data,
-      total: response.total,
-      page: response.page,
-      limit: response.limit,
-      totalPages: response.totalPages,
+      incidents: response.data || [],
+      total: response.pagination.total,
+      page: response.pagination.page,
+      limit: response.pagination.limit,
+      totalPages: response.pagination.totalPages,
     };
   }
 

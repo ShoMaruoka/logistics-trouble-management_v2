@@ -106,9 +106,9 @@ END
 -- システムパラメータマスタ
 IF NOT EXISTS (SELECT * FROM システムパラメータ WHERE パラメータキー = 'SECOND_INFO_DEADLINE_DAYS')
 BEGIN
-    INSERT INTO システムパラメータ (パラメータキー, パラメータ値, 説明, データ型, 作成者, 更新者) VALUES
-    ('SECOND_INFO_DEADLINE_DAYS', '7', '2次情報入力期限（日数）', 'INT', 1, 1),
-    ('THIRD_INFO_DEADLINE_DAYS', '7', '3次情報入力期限（日数）', 'INT', 1, 1);
+    INSERT INTO システムパラメータ (名称, パラメータキー, パラメータ値, 説明, データ型, 作成者, 更新者) VALUES
+    ('2次情報入力期限（日数）', 'SECOND_INFO_DEADLINE_DAYS', '7', '2次情報入力期限を指定します', 'INT', 1, 1),
+    ('3次情報入力期限（日数）', 'THIRD_INFO_DEADLINE_DAYS', '7', '3次情報入力期限を指定します', 'INT', 1, 1);
     PRINT 'システムパラメータマスタデータを投入しました。';
 END
 

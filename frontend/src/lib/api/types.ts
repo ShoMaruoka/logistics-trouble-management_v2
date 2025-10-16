@@ -10,12 +10,19 @@ export interface ApiResponse<T = any> {
   errors?: Record<string, string[]>;
 }
 
-// ページネーション付きレスポンス型
-export interface PagedApiResponse<T = any> extends ApiResponse<T[]> {
-  total: number;
+// ページネーション情報型
+export interface PaginationInfo {
   page: number;
   limit: number;
+  total: number;
   totalPages: number;
+  hasPrevious: boolean;
+  hasNext: boolean;
+}
+
+// ページネーション付きレスポンス型
+export interface PagedApiResponse<T = any> extends ApiResponse<T[]> {
+  pagination: PaginationInfo;
 }
 
 // 認証関連の型
@@ -34,13 +41,17 @@ export interface AuthResponse {
 export interface UserResponse {
   id: number;
   username: string;
-  email: string;
-  fullName: string;
+  displayName: string;
   role: string;
-  organization: string;
+  userRoleId: number; // システム管理者判定用
+  organizationId?: number;
+  organizationName?: string;
+  defaultWarehouseId?: number;
+  defaultWarehouseName?: string;
   isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
+  lastLoginAt?: string;
 }
 
 // インシデント関連の型
@@ -95,8 +106,8 @@ export interface IncidentResponse {
   inputDate3?: string;
   recurrencePreventionMeasures?: string;
   status: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface IncidentSearchRequest {
@@ -147,6 +158,26 @@ export interface MasterDataItem {
   description?: string;
   isActive: boolean;
   sortOrder?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// トラブル詳細区分専用の型（親区分IDを含む）
+export interface TroubleDetailCategoryItem extends MasterDataItem {
+  troubleCategoryId: number;
+}
+
+// 単位専用の型（コードを含む）
+export interface UnitItem extends Omit<MasterDataItem, 'code'> {
+  code: string;
+}
+
+// システムパラメータ専用の型（複数フィールドを含む）
+export interface SystemParameterItem extends MasterDataItem {
+  parameterKey: string;
+  parameterValue: string;
+  description?: string;
+  dataType: string;
 }
 
 export interface MasterDataResponse {
@@ -155,7 +186,124 @@ export interface MasterDataResponse {
   shippingWarehouses: MasterDataItem[];
   shippingCompanies: MasterDataItem[];
   troubleCategories: MasterDataItem[];
-  troubleDetailCategories: MasterDataItem[];
-  units: MasterDataItem[];
+  troubleDetailCategories: TroubleDetailCategoryItem[];
+  units: UnitItem[];
   userRoles: MasterDataItem[];
+  systemParameters: SystemParameterItem[];
+}
+
+// マスタデータCRUD操作用の型
+export interface MasterDataCreateRequest {
+  name: string;
+  isActive: boolean;
+}
+
+export interface MasterDataUpdateRequest {
+  id: number;
+  name: string;
+  isActive: boolean;
+}
+
+export interface TroubleDetailCategoryCreateRequest {
+  name: string;
+  troubleCategoryId: number;
+  isActive: boolean;
+}
+
+export interface TroubleDetailCategoryUpdateRequest {
+  id: number;
+  name: string;
+  troubleCategoryId: number;
+  isActive: boolean;
+}
+
+export interface UnitCreateRequest {
+  code: string;
+  name: string;
+  isActive: boolean;
+}
+
+export interface UnitUpdateRequest {
+  id: number;
+  code: string;
+  name: string;
+  isActive: boolean;
+}
+
+export interface SystemParameterCreateRequest {
+  parameterKey: string;
+  parameterValue: string;
+  description?: string;
+  dataType: string;
+  isActive: boolean;
+}
+
+export interface SystemParameterUpdateRequest {
+  id: number;
+  parameterKey: string;
+  parameterValue: string;
+  description?: string;
+  dataType: string;
+  isActive: boolean;
+}
+
+// ユーザー管理関連の型
+export interface UserCreateRequest {
+  username: string;
+  displayName: string;
+  password: string;
+  userRoleId: number;
+  organizationId?: number;
+  defaultWarehouseId?: number;
+  isActive: boolean;
+}
+
+export interface UserUpdateRequest {
+  id: number;
+  username: string;
+  displayName: string;
+  userRoleId: number;
+  organizationId?: number;
+  defaultWarehouseId?: number;
+  isActive: boolean;
+}
+
+export interface UserItem {
+  id: number;
+  username: string;
+  displayName: string;
+  role: string;
+  userRoleId: number;
+  organizationId?: number;
+  organization?: string;
+  defaultWarehouseId?: number;
+  defaultWarehouse?: string;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  lastLoginAt?: string;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+// ユーザーロール管理関連の型
+export interface UserRoleCreateRequest {
+  roleName: string;
+}
+
+export interface UserRoleUpdateRequest {
+  id: number;
+  roleName: string;
+}
+
+export interface UserRoleItem {
+  id: number;
+  name: string; // roleNameをnameとして統一
+  isActive: boolean; // UserRoleにはIsActiveフィールドがないためtrueを設定
+  createdAt?: string;
+  updatedAt?: string;
 }
