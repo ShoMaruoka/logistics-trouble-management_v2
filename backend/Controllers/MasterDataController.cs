@@ -1143,6 +1143,125 @@ namespace LogisticsTroubleManagement.Controllers
                 return StatusCode(500, ApiResponseDto<bool>.ErrorResponse("システムパラメータの削除中にエラーが発生しました"));
             }
         }
+
+        // =============================================
+        // ユーザーロール管理エンドポイント
+        // =============================================
+
+        /// <summary>
+        /// ユーザーロールの作成
+        /// </summary>
+        /// <param name="dto">ユーザーロール作成DTO</param>
+        /// <returns>作成されたユーザーロール情報</returns>
+        [HttpPost("user-roles")]
+        [Authorize]
+        public async Task<ActionResult<ApiResponseDto<MasterDataItemDto>>> CreateUserRole([FromBody] UserRoleCreateDto dto)
+        {
+            try
+            {
+                // システム管理者権限チェック
+                AuthorizationHelper.RequireSystemAdmin(User);
+                var userId = AuthorizationHelper.GetUserIdRequired(User);
+
+                var result = await _masterDataService.CreateUserRoleAsync(dto, userId);
+                
+                if (!result.Success)
+                {
+                    return BadRequest(result);
+                }
+
+                return Ok(result);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogWarning("システム管理者権限なしでユーザーロール作成を試行: {Message}", ex.Message);
+                return Forbid();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "ユーザーロール作成中にエラーが発生しました");
+                return StatusCode(500, ApiResponseDto<MasterDataItemDto>.ErrorResponse("ユーザーロールの作成中にエラーが発生しました"));
+            }
+        }
+
+        /// <summary>
+        /// ユーザーロールの更新
+        /// </summary>
+        /// <param name="id">ユーザーロールID</param>
+        /// <param name="dto">ユーザーロール更新DTO</param>
+        /// <returns>更新されたユーザーロール情報</returns>
+        [HttpPut("user-roles/{id}")]
+        [Authorize]
+        public async Task<ActionResult<ApiResponseDto<MasterDataItemDto>>> UpdateUserRole(int id, [FromBody] UserRoleUpdateDto dto)
+        {
+            try
+            {
+                // システム管理者権限チェック
+                AuthorizationHelper.RequireSystemAdmin(User);
+                var userId = AuthorizationHelper.GetUserIdRequired(User);
+
+                // URLのIDとDTOのIDが一致することを確認
+                if (id != dto.Id)
+                {
+                    return BadRequest(ApiResponseDto<MasterDataItemDto>.ErrorResponse("URLのIDとリクエストボディのIDが一致しません"));
+                }
+
+                var result = await _masterDataService.UpdateUserRoleAsync(dto, userId);
+                
+                if (!result.Success)
+                {
+                    return BadRequest(result);
+                }
+
+                return Ok(result);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogWarning("システム管理者権限なしでユーザーロール更新を試行: {Message}", ex.Message);
+                return Forbid();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "ユーザーロール更新中にエラーが発生しました: ID {Id}", id);
+                return StatusCode(500, ApiResponseDto<MasterDataItemDto>.ErrorResponse("ユーザーロールの更新中にエラーが発生しました"));
+            }
+        }
+
+        /// <summary>
+        /// ユーザーロールの削除
+        /// </summary>
+        /// <param name="id">ユーザーロールID</param>
+        /// <returns>削除結果</returns>
+        [HttpDelete("user-roles/{id}")]
+        [Authorize]
+        public async Task<ActionResult<ApiResponseDto<bool>>> DeleteUserRole(int id)
+        {
+            try
+            {
+                // システム管理者権限チェック
+                AuthorizationHelper.RequireSystemAdmin(User);
+                var userId = AuthorizationHelper.GetUserIdRequired(User);
+
+                var result = await _masterDataService.DeleteUserRoleAsync(id, userId);
+                
+                if (!result.Success)
+                {
+                    return BadRequest(result);
+                }
+
+                return Ok(result);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogWarning("システム管理者権限なしでユーザーロール削除を試行: {Message}", ex.Message);
+                return Forbid();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "ユーザーロール削除中にエラーが発生しました: ID {Id}", id);
+                return StatusCode(500, ApiResponseDto<bool>.ErrorResponse("ユーザーロールの削除中にエラーが発生しました"));
+            }
+        }
     }
 }
 

@@ -43,10 +43,14 @@ namespace LogisticsTroubleManagement.Models
         public string DisplayName { get; set; } = string.Empty;
 
         /// <summary>
-        /// 所属組織（部門IDから取得）
+        /// 部門ID
         /// </summary>
-        [MaxLength(100)]
-        public string Organization { get; set; } = "本社A";
+        public int? OrganizationId { get; set; }
+
+        /// <summary>
+        /// デフォルト倉庫ID
+        /// </summary>
+        public int? DefaultWarehouseId { get; set; }
 
         /// <summary>
         /// ユーザーロールID
@@ -60,15 +64,13 @@ namespace LogisticsTroubleManagement.Models
         public bool IsActive { get; set; } = true;
 
         /// <summary>
-        /// 作成日時（データベースに存在しないため無視）
+        /// 作成日時
         /// </summary>
-        [NotMapped]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         /// <summary>
-        /// 更新日時（データベースに存在しないため無視）
+        /// 更新日時
         /// </summary>
-        [NotMapped]
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         /// <summary>

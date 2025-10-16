@@ -181,5 +181,24 @@ namespace LogisticsTroubleManagement.Services
         /// システムパラメータの削除（論理削除）
         /// </summary>
         Task<ApiResponseDto<bool>> DeleteSystemParameterAsync(int id, int userId);
+
+        // =============================================
+        // ユーザーロール管理メソッド
+        // =============================================
+
+        /// <summary>
+        /// ユーザーロールの作成
+        /// </summary>
+        Task<ApiResponseDto<MasterDataItemDto>> CreateUserRoleAsync(UserRoleCreateDto dto, int userId);
+
+        /// <summary>
+        /// ユーザーロールの更新
+        /// </summary>
+        Task<ApiResponseDto<MasterDataItemDto>> UpdateUserRoleAsync(UserRoleUpdateDto dto, int userId);
+
+        /// <summary>
+        /// ユーザーロールの削除
+        /// </summary>
+        Task<ApiResponseDto<bool>> DeleteUserRoleAsync(int id, int userId);
     }
 }

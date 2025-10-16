@@ -1513,5 +1513,146 @@ namespace LogisticsTroubleManagement.Services
                 return ApiResponseDto<bool>.ErrorResponse("システムパラメータの削除に失敗しました");
             }
         }
+
+        // =============================================
+        // ユーザーロール管理メソッド
+        // =============================================
+
+        /// <summary>
+        /// ユーザーロールの作成
+        /// </summary>
+        public async Task<ApiResponseDto<MasterDataItemDto>> CreateUserRoleAsync(UserRoleCreateDto dto, int userId)
+        {
+            try
+            {
+                // ロール名の重複チェック
+                var existingRole = await _context.UserRoles
+                    .FirstOrDefaultAsync(r => r.RoleName == dto.RoleName);
+
+                if (existingRole != null)
+                {
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse("同じロール名が既に存在します");
+                }
+
+                var userRole = new UserRole
+                {
+                    RoleName = dto.RoleName,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.UserRoles.Add(userRole);
+                await _context.SaveChangesAsync();
+
+                var result = new MasterDataItemDto
+                {
+                    Id = userRole.Id,
+                    Name = userRole.RoleName,
+                    IsActive = true, // UserRoleにはIsActiveフィールドがないためtrueを設定
+                    CreatedAt = userRole.CreatedAt,
+                    UpdatedAt = null // UserRoleにはUpdatedAtフィールドがないためnullを設定
+                };
+
+                _logger.LogInformation("ユーザーロールを作成しました: ID {Id}, ロール名 {RoleName}", userRole.Id, userRole.RoleName);
+                return ApiResponseDto<MasterDataItemDto>.SuccessResponse(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "ユーザーロールの作成中にエラーが発生しました: ロール名 {RoleName}", dto.RoleName);
+                return ApiResponseDto<MasterDataItemDto>.ErrorResponse("ユーザーロールの作成に失敗しました");
+            }
+        }
+
+        /// <summary>
+        /// ユーザーロールの更新
+        /// </summary>
+        public async Task<ApiResponseDto<MasterDataItemDto>> UpdateUserRoleAsync(UserRoleUpdateDto dto, int userId)
+        {
+            try
+            {
+                var userRole = await _context.UserRoles.FindAsync(dto.Id);
+                if (userRole == null)
+                {
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse("指定されたユーザーロールが見つかりません");
+                }
+
+                // ロール名の重複チェック（自分以外）
+                var existingRole = await _context.UserRoles
+                    .FirstOrDefaultAsync(r => r.RoleName == dto.RoleName && r.Id != dto.Id);
+
+                if (existingRole != null)
+                {
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse("同じロール名が既に存在します");
+                }
+
+                // システム管理者ロール（ID=1）の変更を制限
+                if (dto.Id == 1)
+                {
+                    return ApiResponseDto<MasterDataItemDto>.ErrorResponse("システム管理者ロールは変更できません");
+                }
+
+                userRole.RoleName = dto.RoleName;
+                // UserRoleにはUpdatedAtフィールドがないため、更新日時の設定は行わない
+
+                await _context.SaveChangesAsync();
+
+                var result = new MasterDataItemDto
+                {
+                    Id = userRole.Id,
+                    Name = userRole.RoleName,
+                    IsActive = true, // UserRoleにはIsActiveフィールドがないためtrueを設定
+                    CreatedAt = userRole.CreatedAt,
+                    UpdatedAt = null // UserRoleにはUpdatedAtフィールドがないためnullを設定
+                };
+
+                _logger.LogInformation("ユーザーロールを更新しました: ID {Id}, ロール名 {RoleName}", userRole.Id, userRole.RoleName);
+                return ApiResponseDto<MasterDataItemDto>.SuccessResponse(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "ユーザーロールの更新中にエラーが発生しました: ID {Id}, ロール名 {RoleName}", dto.Id, dto.RoleName);
+                return ApiResponseDto<MasterDataItemDto>.ErrorResponse("ユーザーロールの更新に失敗しました");
+            }
+        }
+
+        /// <summary>
+        /// ユーザーロールの削除
+        /// </summary>
+        public async Task<ApiResponseDto<bool>> DeleteUserRoleAsync(int id, int userId)
+        {
+            try
+            {
+                var userRole = await _context.UserRoles.FindAsync(id);
+                if (userRole == null)
+                {
+                    return ApiResponseDto<bool>.ErrorResponse("指定されたユーザーロールが見つかりません");
+                }
+
+                // システム管理者ロール（ID=1）の削除を制限
+                if (id == 1)
+                {
+                    return ApiResponseDto<bool>.ErrorResponse("システム管理者ロールは削除できません");
+                }
+
+                // このロールを使用しているユーザーがいるかチェック
+                var usersWithRole = await _context.Users
+                    .AnyAsync(u => u.UserRoleId == id);
+
+                if (usersWithRole)
+                {
+                    return ApiResponseDto<bool>.ErrorResponse("このロールを使用しているユーザーが存在するため削除できません");
+                }
+
+                _context.UserRoles.Remove(userRole);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("ユーザーロールを削除しました: ID {Id}, ロール名 {RoleName}", userRole.Id, userRole.RoleName);
+                return ApiResponseDto<bool>.SuccessResponse(true);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "ユーザーロールの削除中にエラーが発生しました: ID {Id}", id);
+                return ApiResponseDto<bool>.ErrorResponse("ユーザーロールの削除に失敗しました");
+            }
+        }
     }
 }

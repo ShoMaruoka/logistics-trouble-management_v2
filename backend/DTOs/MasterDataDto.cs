@@ -328,4 +328,36 @@ namespace LogisticsTroubleManagement.DTOs
         /// </summary>
         public bool IsActive { get; set; }
     }
+
+    /// <summary>
+    /// ユーザーロール作成用DTO
+    /// </summary>
+    public class UserRoleCreateDto
+    {
+        /// <summary>
+        /// ロール名
+        /// </summary>
+        [Required(ErrorMessage = "ロール名は必須です")]
+        [StringLength(50, ErrorMessage = "ロール名は50文字以内で入力してください")]
+        public string RoleName { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// ユーザーロール更新用DTO
+    /// </summary>
+    public class UserRoleUpdateDto
+    {
+        /// <summary>
+        /// ID
+        /// </summary>
+        [Required(ErrorMessage = "IDは必須です")]
+        public int Id { get; set; }
+
+        /// <summary>
+        /// ロール名
+        /// </summary>
+        [Required(ErrorMessage = "ロール名は必須です")]
+        [StringLength(50, ErrorMessage = "ロール名は50文字以内で入力してください")]
+        public string RoleName { get; set; } = string.Empty;
+    }
 }

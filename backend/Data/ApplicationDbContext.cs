@@ -151,9 +151,12 @@ namespace LogisticsTroubleManagement.Data
                 entity.Property(e => e.Password).HasColumnName("パスワード").HasMaxLength(20);
                 entity.Property(e => e.PasswordHash).HasColumnName("パスワードハッシュ").IsRequired().HasMaxLength(255);
                 entity.Property(e => e.DisplayName).HasColumnName("氏名").IsRequired().HasMaxLength(100);
-                entity.Ignore(e => e.Organization); // データベースに存在しないため無視
+                entity.Property(e => e.OrganizationId).HasColumnName("部門ID");
+                entity.Property(e => e.DefaultWarehouseId).HasColumnName("デフォルト倉庫ID");
                 entity.Property(e => e.UserRoleId).HasColumnName("ユーザーロールID").IsRequired();
                 entity.Property(e => e.IsActive).HasColumnName("有効フラグ").HasDefaultValue(true);
+                entity.Property(e => e.CreatedAt).HasColumnName("作成日時").IsRequired();
+                entity.Property(e => e.UpdatedAt).HasColumnName("更新日時").IsRequired();
 
                 // 外部キー関係
                 entity.HasOne(e => e.UserRole)
@@ -343,7 +346,7 @@ namespace LogisticsTroubleManagement.Data
                     Username = "admin",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"), // 実際の運用ではより強固なパスワードを使用
                     DisplayName = "システム管理者",
-                    Organization = "本社A",
+                    OrganizationId = 1, // 本社Aの部門ID
                     UserRoleId = 1, // システム管理者
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow,

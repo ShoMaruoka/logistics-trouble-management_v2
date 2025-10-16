@@ -35,6 +35,8 @@ import {
   FileText, 
   Package, 
   Settings,
+  Users,
+  Shield,
   Plus,
   Edit,
   Trash2,
@@ -42,7 +44,17 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { masterDataApi } from '@/lib/api/masterData';
-import type { MasterDataItem, MasterDataCreateRequest, MasterDataUpdateRequest } from '@/lib/api/types';
+import { userApi } from '@/lib/api/user';
+import type { 
+  MasterDataItem, 
+  MasterDataCreateRequest, 
+  MasterDataUpdateRequest,
+  UserItem,
+  UserCreateRequest,
+  UserUpdateRequest,
+  UserRoleCreateRequest,
+  UserRoleUpdateRequest
+} from '@/lib/api/types';
 
 // マスタデータの種類定義
 const MASTER_DATA_TYPES = [
@@ -54,6 +66,8 @@ const MASTER_DATA_TYPES = [
   { key: 'troubleDetailCategories', name: 'トラブル詳細区分', icon: FileText, color: 'bg-pink-100 text-pink-800' },
   { key: 'units', name: '単位', icon: Package, color: 'bg-indigo-100 text-indigo-800' },
   { key: 'systemParameters', name: 'システムパラメータ', icon: Settings, color: 'bg-gray-100 text-gray-800' },
+  { key: 'users', name: 'ユーザー', icon: Users, color: 'bg-cyan-100 text-cyan-800' },
+  { key: 'userRoles', name: 'ユーザーロール', icon: Shield, color: 'bg-yellow-100 text-yellow-800' },
 ] as const;
 
 type MasterDataType = typeof MASTER_DATA_TYPES[number]['key'];
@@ -64,13 +78,16 @@ export default function MasterDataManagementPage() {
   const { toast } = useToast();
   
   const [selectedType, setSelectedType] = useState<MasterDataType>('organizations');
-  const [data, setData] = useState<MasterDataItem[]>([]);
+  const [data, setData] = useState<(MasterDataItem | UserItem)[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [troubleCategories, setTroubleCategories] = useState<MasterDataItem[]>([]);
+  const [userRoles, setUserRoles] = useState<MasterDataItem[]>([]);
+  const [organizations, setOrganizations] = useState<MasterDataItem[]>([]);
+  const [warehouses, setWarehouses] = useState<MasterDataItem[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<MasterDataItem | null>(null);
+  const [editingItem, setEditingItem] = useState<(MasterDataItem | UserItem) | null>(null);
   const [formData, setFormData] = useState<any>({
     name: '',
     isActive: true,
@@ -80,7 +97,66 @@ export default function MasterDataManagementPage() {
     parameterValue: '',
     description: '',
     dataType: 'string',
+    // ユーザー用フィールド
+    username: '',
+    displayName: '',
+    password: '',
+    confirmPassword: '',
+    userRoleId: undefined,
+    organizationId: undefined,
+    defaultWarehouseId: undefined,
+    // ユーザーロール用フィールド
+    roleName: '',
   });
+
+  // データ取得
+  const fetchData = useCallback(async (clearCache = false) => {
+    setLoading(true);
+    try {
+      // キャッシュをクリアする場合は、先にクリアしてからデータを取得
+      if (clearCache) {
+        masterDataApi.clearCache();
+      }
+      
+      if (selectedType === 'users') {
+        // ユーザー一覧の取得
+        const userResponse = await userApi.getUsers(1, 1000); // 大量データ対応
+        console.log('ユーザーレスポンス:', userResponse);
+        setData(userResponse.data || []);
+      } else if (selectedType === 'userRoles') {
+        // ユーザーロール一覧の取得
+        const masterData = await masterDataApi.getCachedMasterData();
+        setData(masterData.userRoles || []);
+      } else {
+        // その他のマスタデータの取得
+        const masterData = await masterDataApi.getCachedMasterData();
+        setData(masterData[selectedType] || []);
+      }
+      
+      // 依存データの取得
+      const masterData = await masterDataApi.getCachedMasterData();
+      
+      // トラブル詳細区分の場合は、トラブル区分のデータも取得
+      if (selectedType === 'troubleDetailCategories') {
+        setTroubleCategories(masterData.troubleCategories || []);
+      }
+      
+      // ユーザー管理の場合は、ユーザーロール、部門、倉庫のデータも取得
+      if (selectedType === 'users') {
+        setUserRoles(masterData.userRoles || []);
+        setOrganizations(masterData.organizations || []);
+        setWarehouses(masterData.shippingWarehouses || []);
+      }
+    } catch (error) {
+      toast({
+        title: "エラーが発生しました",
+        description: error instanceof Error ? error.message : "データの取得に失敗しました。",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedType, toast]);
 
   // 権限チェック
   useEffect(() => {
@@ -101,43 +177,49 @@ export default function MasterDataManagementPage() {
     }
   }, [user, authLoading, router, toast]);
 
-  // データ取得
-  const fetchData = useCallback(async (clearCache = false) => {
-    setLoading(true);
-    try {
-      // キャッシュをクリアする場合は、先にクリアしてからデータを取得
-      if (clearCache) {
-        masterDataApi.clearCache();
-      }
-      
-      const masterData = await masterDataApi.getCachedMasterData();
-      setData(masterData[selectedType] || []);
-      
-      // トラブル詳細区分の場合は、トラブル区分のデータも取得
-      if (selectedType === 'troubleDetailCategories') {
-        setTroubleCategories(masterData.troubleCategories || []);
-      }
-    } catch (error) {
-      toast({
-        title: "エラーが発生しました",
-        description: error instanceof Error ? error.message : "データの取得に失敗しました。",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedType, masterDataApi, toast]);
-
   useEffect(() => {
     if (user) {
       fetchData();
     }
   }, [selectedType, user, fetchData]);
 
+  // 認証状態が読み込み中または権限がない場合は何も表示しない
+  if (authLoading) {
+    return (
+      <div className="min-h-screen w-full bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">認証状態を確認中...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // 認証されていない場合は何も表示しない（リダイレクト処理中）
+  if (!user) {
+    return null;
+  }
+
+  // システム管理者でない場合は何も表示しない（リダイレクト処理中）
+  try {
+    requireSystemAdmin(user);
+  } catch (error) {
+    return null;
+  }
+
   // 検索フィルタリング
-  const filteredData = data.filter(item =>
-    item.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredData = data.filter(item => {
+    if (selectedType === 'users') {
+      const userItem = item as UserItem;
+      return (
+        (userItem.username || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (userItem.displayName || '').toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    } else {
+      const masterItem = item as MasterDataItem;
+      return (masterItem.name || '').toLowerCase().includes(searchTerm.toLowerCase());
+    }
+  });
 
   // 新規作成
   const handleCreate = async () => {
@@ -158,6 +240,10 @@ export default function MasterDataManagementPage() {
         await masterDataApi.createUnit(formData as any);
       } else if (selectedType === 'systemParameters') {
         await masterDataApi.createSystemParameter(formData as any);
+      } else if (selectedType === 'users') {
+        await userApi.createUser(formData as UserCreateRequest);
+      } else if (selectedType === 'userRoles') {
+        await masterDataApi.createUserRole(formData as UserRoleCreateRequest);
       }
       
       toast({
@@ -175,6 +261,16 @@ export default function MasterDataManagementPage() {
         parameterValue: '',
         description: '',
         dataType: 'string',
+        // ユーザー用フィールド
+        username: '',
+        displayName: '',
+        password: '',
+        confirmPassword: '',
+        userRoleId: undefined,
+        organizationId: undefined,
+        defaultWarehouseId: undefined,
+        // ユーザーロール用フィールド
+        roleName: '',
       });
       await fetchData(true); // キャッシュをクリアしてからデータを再取得
     } catch (error) {
@@ -260,6 +356,23 @@ export default function MasterDataManagementPage() {
         };
         console.log('システムパラメータ更新データ:', systemParameterUpdateData);
         await masterDataApi.updateSystemParameter(editingItem.id, systemParameterUpdateData);
+      } else if (selectedType === 'users') {
+        const userUpdateData: UserUpdateRequest = {
+          id: editingItem.id,
+          username: formData.username,
+          displayName: formData.displayName,
+          userRoleId: formData.userRoleId,
+          organizationId: formData.organizationId,
+          defaultWarehouseId: formData.defaultWarehouseId,
+          isActive: formData.isActive,
+        };
+        await userApi.updateUser(editingItem.id, userUpdateData);
+      } else if (selectedType === 'userRoles') {
+        const userRoleUpdateData: UserRoleUpdateRequest = {
+          id: editingItem.id,
+          roleName: formData.roleName,
+        };
+        await masterDataApi.updateUserRole(editingItem.id, userRoleUpdateData);
       }
       
       toast({
@@ -278,6 +391,16 @@ export default function MasterDataManagementPage() {
         parameterValue: '',
         description: '',
         dataType: 'string',
+        // ユーザー用フィールド
+        username: '',
+        displayName: '',
+        password: '',
+        confirmPassword: '',
+        userRoleId: undefined,
+        organizationId: undefined,
+        defaultWarehouseId: undefined,
+        // ユーザーロール用フィールド
+        roleName: '',
       });
       await fetchData(true); // キャッシュをクリアしてからデータを再取得
     } catch (error) {
@@ -310,6 +433,10 @@ export default function MasterDataManagementPage() {
         await masterDataApi.deleteUnit(id);
       } else if (selectedType === 'systemParameters') {
         await masterDataApi.deleteSystemParameter(id);
+      } else if (selectedType === 'users') {
+        await userApi.deleteUser(id);
+      } else if (selectedType === 'userRoles') {
+        await masterDataApi.deleteUserRole(id);
       }
       
       toast({
@@ -328,31 +455,79 @@ export default function MasterDataManagementPage() {
   };
 
   // 編集ダイアログを開く
-  const openEditDialog = (item: MasterDataItem) => {
+  const openEditDialog = (item: MasterDataItem | UserItem) => {
     setEditingItem(item);
-    setFormData({
-      name: item.name,
-      isActive: item.isActive,
-      troubleCategoryId: selectedType === 'troubleDetailCategories' ? (item as any).troubleCategoryId : undefined,
-      code: selectedType === 'units' ? (item as any).code || '' : '',
-      parameterKey: selectedType === 'systemParameters' ? (item as any).parameterKey || '' : '',
-      parameterValue: selectedType === 'systemParameters' ? (item as any).parameterValue || '' : '',
-      description: selectedType === 'systemParameters' ? (item as any).description || '' : '',
-      dataType: selectedType === 'systemParameters' ? (item as any).dataType || 'string' : 'string',
-    });
+    
+    if (selectedType === 'users') {
+      const userItem = item as UserItem;
+      setFormData({
+        name: userItem.displayName,
+        isActive: userItem.isActive,
+        troubleCategoryId: undefined,
+        code: '',
+        parameterKey: '',
+        parameterValue: '',
+        description: '',
+        dataType: 'string',
+        // ユーザー用フィールド
+        username: userItem.username,
+        displayName: userItem.displayName,
+        password: '',
+        confirmPassword: '',
+        userRoleId: userItem.userRoleId,
+        organizationId: userItem.organizationId,
+        defaultWarehouseId: userItem.defaultWarehouseId,
+        // ユーザーロール用フィールド
+        roleName: '',
+      });
+    } else if (selectedType === 'userRoles') {
+      const masterItem = item as MasterDataItem;
+      setFormData({
+        name: masterItem.name,
+        isActive: masterItem.isActive,
+        troubleCategoryId: undefined,
+        code: '',
+        parameterKey: '',
+        parameterValue: '',
+        description: '',
+        dataType: 'string',
+        // ユーザー用フィールド
+        username: '',
+        displayName: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+        userRoleId: undefined,
+        organizationId: undefined,
+        // ユーザーロール用フィールド
+        roleName: masterItem.name,
+      });
+    } else {
+      const masterItem = item as MasterDataItem;
+      setFormData({
+        name: masterItem.name,
+        isActive: masterItem.isActive,
+        troubleCategoryId: selectedType === 'troubleDetailCategories' ? (masterItem as any).troubleCategoryId : undefined,
+        code: selectedType === 'units' ? (masterItem as any).code || '' : '',
+        parameterKey: selectedType === 'systemParameters' ? (masterItem as any).parameterKey || '' : '',
+        parameterValue: selectedType === 'systemParameters' ? (masterItem as any).parameterValue || '' : '',
+        description: selectedType === 'systemParameters' ? (masterItem as any).description || '' : '',
+        dataType: selectedType === 'systemParameters' ? (masterItem as any).dataType || 'string' : 'string',
+        // ユーザー用フィールド
+        username: '',
+        displayName: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+        userRoleId: undefined,
+        organizationId: undefined,
+        // ユーザーロール用フィールド
+        roleName: '',
+      });
+    }
     setIsEditDialogOpen(true);
   };
 
-  if (authLoading) {
-    return (
-      <div className="min-h-screen w-full bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">読み込み中...</p>
-        </div>
-      </div>
-    );
-  }
 
   const currentType = MASTER_DATA_TYPES.find(type => type.key === selectedType);
 
@@ -453,7 +628,12 @@ export default function MasterDataManagementPage() {
                       {filteredData.map((item) => (
                         <TableRow key={item.id}>
                           <TableCell>{item.id}</TableCell>
-                          <TableCell className="font-medium">{item.name}</TableCell>
+                          <TableCell className="font-medium">
+                            {selectedType === 'users' 
+                              ? (item as UserItem).displayName || (item as UserItem).username || '-'
+                              : (item as MasterDataItem).name || '-'
+                            }
+                          </TableCell>
                           <TableCell>
                             <Badge variant={item.isActive ? "default" : "secondary"}>
                               {item.isActive ? "有効" : "無効"}
@@ -507,15 +687,18 @@ export default function MasterDataManagementPage() {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-              <div>
-                <Label htmlFor="name">名称</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="名称を入力してください"
-                />
-              </div>
+              {/* ユーザー以外の場合は名称フィールドを表示 */}
+              {selectedType !== 'users' && selectedType !== 'userRoles' && (
+                <div>
+                  <Label htmlFor="name">名称</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="名称を入力してください"
+                  />
+                </div>
+              )}
               
               {/* トラブル詳細区分の場合はトラブル区分選択を追加 */}
               {selectedType === 'troubleDetailCategories' && (
@@ -596,6 +779,111 @@ export default function MasterDataManagementPage() {
                 </>
               )}
 
+              {/* ユーザーの場合は追加フィールドを表示 */}
+              {selectedType === 'users' && (
+                <>
+                  <div>
+                    <Label htmlFor="username">ユーザーID</Label>
+                    <Input
+                      id="username"
+                      value={formData.username}
+                      onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                      placeholder="ユーザーIDを入力してください"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="displayName">氏名</Label>
+                    <Input
+                      id="displayName"
+                      value={formData.displayName}
+                      onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
+                      placeholder="氏名を入力してください"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="password">パスワード</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      placeholder="パスワードを入力してください"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="confirmPassword">パスワード確認</Label>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      value={formData.confirmPassword}
+                      onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                      placeholder="パスワードを再入力してください"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="userRoleId">ユーザーロール</Label>
+                    <select
+                      id="userRoleId"
+                      value={formData.userRoleId || ''}
+                      onChange={(e) => setFormData({ ...formData, userRoleId: parseInt(e.target.value) || undefined })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">ユーザーロールを選択してください</option>
+                      {userRoles.map((role) => (
+                        <option key={role.id} value={role.id}>
+                          {role.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <Label htmlFor="organizationId">部門</Label>
+                    <select
+                      id="organizationId"
+                      value={formData.organizationId || ''}
+                      onChange={(e) => setFormData({ ...formData, organizationId: parseInt(e.target.value) || undefined })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">部門を選択してください</option>
+                      {organizations.map((org) => (
+                        <option key={org.id} value={org.id}>
+                          {org.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <Label htmlFor="defaultWarehouseId">デフォルト倉庫</Label>
+                    <select
+                      id="defaultWarehouseId"
+                      value={formData.defaultWarehouseId || ''}
+                      onChange={(e) => setFormData({ ...formData, defaultWarehouseId: parseInt(e.target.value) || undefined })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">デフォルト倉庫を選択してください</option>
+                      {warehouses.map((warehouse) => (
+                        <option key={warehouse.id} value={warehouse.id}>
+                          {warehouse.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {/* ユーザーロールの場合は追加フィールドを表示 */}
+              {selectedType === 'userRoles' && (
+                <div>
+                  <Label htmlFor="roleName">ロール名</Label>
+                  <Input
+                    id="roleName"
+                    value={formData.roleName}
+                    onChange={(e) => setFormData({ ...formData, roleName: e.target.value })}
+                    placeholder="ロール名を入力してください"
+                  />
+                </div>
+              )}
+
               <div className="flex items-center space-x-2">
                 <Switch
                   id="isActive"
@@ -612,9 +900,11 @@ export default function MasterDataManagementPage() {
               <Button 
                 onClick={handleCreate} 
                 disabled={
-                  !formData.name.trim() || 
+                  (selectedType !== 'users' && selectedType !== 'userRoles' && !formData.name.trim()) || 
                   (selectedType === 'troubleDetailCategories' && !formData.troubleCategoryId) ||
-                  (selectedType === 'systemParameters' && (!formData.parameterKey.trim() || !formData.parameterValue.trim()))
+                  (selectedType === 'systemParameters' && (!formData.parameterKey.trim() || !formData.parameterValue.trim())) ||
+                  (selectedType === 'users' && (!formData.username.trim() || !formData.displayName.trim() || !formData.password.trim() || !formData.userRoleId)) ||
+                  (selectedType === 'userRoles' && !formData.roleName.trim())
                 }
               >
                 作成
@@ -633,15 +923,18 @@ export default function MasterDataManagementPage() {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-              <div>
-                <Label htmlFor="edit-name">名称</Label>
-                <Input
-                  id="edit-name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="名称を入力してください"
-                />
-              </div>
+              {/* ユーザー以外の場合は名称フィールドを表示 */}
+              {selectedType !== 'users' && selectedType !== 'userRoles' && (
+                <div>
+                  <Label htmlFor="edit-name">名称</Label>
+                  <Input
+                    id="edit-name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="名称を入力してください"
+                  />
+                </div>
+              )}
               
               {/* トラブル詳細区分の場合はトラブル区分選択を追加 */}
               {selectedType === 'troubleDetailCategories' && (
@@ -722,6 +1015,91 @@ export default function MasterDataManagementPage() {
                 </>
               )}
 
+              {/* ユーザーの場合は追加フィールドを表示 */}
+              {selectedType === 'users' && (
+                <>
+                  <div>
+                    <Label htmlFor="edit-username">ユーザーID</Label>
+                    <Input
+                      id="edit-username"
+                      value={formData.username}
+                      onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                      placeholder="ユーザーIDを入力してください"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-displayName">氏名</Label>
+                    <Input
+                      id="edit-displayName"
+                      value={formData.displayName}
+                      onChange={(e) => setFormData({ ...formData, displayName: e.target.value })}
+                      placeholder="氏名を入力してください"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-userRoleId">ユーザーロール</Label>
+                    <select
+                      id="edit-userRoleId"
+                      value={formData.userRoleId || ''}
+                      onChange={(e) => setFormData({ ...formData, userRoleId: parseInt(e.target.value) || undefined })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">ユーザーロールを選択してください</option>
+                      {userRoles.map((role) => (
+                        <option key={role.id} value={role.id}>
+                          {role.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-organizationId">部門</Label>
+                    <select
+                      id="edit-organizationId"
+                      value={formData.organizationId || ''}
+                      onChange={(e) => setFormData({ ...formData, organizationId: parseInt(e.target.value) || undefined })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">部門を選択してください</option>
+                      {organizations.map((org) => (
+                        <option key={org.id} value={org.id}>
+                          {org.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <Label htmlFor="edit-defaultWarehouseId">デフォルト倉庫</Label>
+                    <select
+                      id="edit-defaultWarehouseId"
+                      value={formData.defaultWarehouseId || ''}
+                      onChange={(e) => setFormData({ ...formData, defaultWarehouseId: parseInt(e.target.value) || undefined })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">デフォルト倉庫を選択してください</option>
+                      {warehouses.map((warehouse) => (
+                        <option key={warehouse.id} value={warehouse.id}>
+                          {warehouse.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {/* ユーザーロールの場合は追加フィールドを表示 */}
+              {selectedType === 'userRoles' && (
+                <div>
+                  <Label htmlFor="edit-roleName">ロール名</Label>
+                  <Input
+                    id="edit-roleName"
+                    value={formData.roleName}
+                    onChange={(e) => setFormData({ ...formData, roleName: e.target.value })}
+                    placeholder="ロール名を入力してください"
+                  />
+                </div>
+              )}
+
               <div className="flex items-center space-x-2">
                 <Switch
                   id="edit-isActive"
@@ -738,10 +1116,12 @@ export default function MasterDataManagementPage() {
               <Button 
                 onClick={handleEdit} 
                 disabled={
-                  !formData.name.trim() || 
+                  (selectedType !== 'users' && selectedType !== 'userRoles' && !formData.name.trim()) || 
                   (selectedType === 'troubleDetailCategories' && !formData.troubleCategoryId) ||
                   (selectedType === 'units' && !formData.code.trim()) ||
-                  (selectedType === 'systemParameters' && (!formData.parameterKey.trim() || !formData.parameterValue.trim()))
+                  (selectedType === 'systemParameters' && (!formData.parameterKey.trim() || !formData.parameterValue.trim())) ||
+                  (selectedType === 'users' && (!formData.username.trim() || !formData.displayName.trim() || !formData.userRoleId)) ||
+                  (selectedType === 'userRoles' && !formData.roleName.trim())
                 }
               >
                 更新

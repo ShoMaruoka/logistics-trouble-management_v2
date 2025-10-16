@@ -10,12 +10,19 @@ export interface ApiResponse<T = any> {
   errors?: Record<string, string[]>;
 }
 
-// ページネーション付きレスポンス型
-export interface PagedApiResponse<T = any> extends ApiResponse<T[]> {
-  total: number;
+// ページネーション情報型
+export interface PaginationInfo {
   page: number;
   limit: number;
+  total: number;
   totalPages: number;
+  hasPrevious: boolean;
+  hasNext: boolean;
+}
+
+// ページネーション付きレスポンス型
+export interface PagedApiResponse<T = any> extends ApiResponse<T[]> {
+  pagination: PaginationInfo;
 }
 
 // 認証関連の型
@@ -37,7 +44,10 @@ export interface UserResponse {
   displayName: string;
   role: string;
   userRoleId: number; // システム管理者判定用
-  organization: string;
+  organizationId?: number;
+  organizationName?: string;
+  defaultWarehouseId?: number;
+  defaultWarehouseName?: string;
   isActive: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -235,4 +245,65 @@ export interface SystemParameterUpdateRequest {
   description?: string;
   dataType: string;
   isActive: boolean;
+}
+
+// ユーザー管理関連の型
+export interface UserCreateRequest {
+  username: string;
+  displayName: string;
+  password: string;
+  userRoleId: number;
+  organizationId?: number;
+  defaultWarehouseId?: number;
+  isActive: boolean;
+}
+
+export interface UserUpdateRequest {
+  id: number;
+  username: string;
+  displayName: string;
+  userRoleId: number;
+  organizationId?: number;
+  defaultWarehouseId?: number;
+  isActive: boolean;
+}
+
+export interface UserItem {
+  id: number;
+  username: string;
+  displayName: string;
+  role: string;
+  userRoleId: number;
+  organizationId?: number;
+  organization?: string;
+  defaultWarehouseId?: number;
+  defaultWarehouse?: string;
+  isActive: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+  lastLoginAt?: string;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+// ユーザーロール管理関連の型
+export interface UserRoleCreateRequest {
+  roleName: string;
+}
+
+export interface UserRoleUpdateRequest {
+  id: number;
+  roleName: string;
+}
+
+export interface UserRoleItem {
+  id: number;
+  name: string; // roleNameをnameとして統一
+  isActive: boolean; // UserRoleにはIsActiveフィールドがないためtrueを設定
+  createdAt?: string;
+  updatedAt?: string;
 }

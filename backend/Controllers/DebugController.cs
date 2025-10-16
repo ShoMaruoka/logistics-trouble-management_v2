@@ -116,7 +116,7 @@ namespace LogisticsTroubleManagement.Controllers
                         Username = user.Username,
                         PasswordHash = user.PasswordHash,
                         DisplayName = user.DisplayName,
-                        Organization = user.Organization,
+                        OrganizationId = user.OrganizationId,
                         UserRoleId = user.UserRoleId,
                         Role = user.UserRole?.RoleName,
                         IsActive = user.IsActive,

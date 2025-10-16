@@ -30,11 +30,14 @@ namespace LogisticsTroubleManagement.DTOs
         public string DisplayName { get; set; } = string.Empty;
 
         /// <summary>
-        /// 所属組織
+        /// 部門ID
         /// </summary>
-        [Required]
-        [MaxLength(100)]
-        public string Organization { get; set; } = string.Empty;
+        public int? OrganizationId { get; set; }
+
+        /// <summary>
+        /// デフォルト倉庫ID
+        /// </summary>
+        public int? DefaultWarehouseId { get; set; }
 
         /// <summary>
         /// ユーザーロールID
@@ -56,10 +59,14 @@ namespace LogisticsTroubleManagement.DTOs
         public string? DisplayName { get; set; }
 
         /// <summary>
-        /// 所属組織
+        /// 部門ID
         /// </summary>
-        [MaxLength(100)]
-        public string? Organization { get; set; }
+        public int? OrganizationId { get; set; }
+
+        /// <summary>
+        /// デフォルト倉庫ID
+        /// </summary>
+        public int? DefaultWarehouseId { get; set; }
 
         /// <summary>
         /// ユーザーロールID
@@ -94,9 +101,24 @@ namespace LogisticsTroubleManagement.DTOs
         public string DisplayName { get; set; } = string.Empty;
 
         /// <summary>
-        /// 所属組織
+        /// 部門ID
         /// </summary>
-        public string Organization { get; set; } = string.Empty;
+        public int? OrganizationId { get; set; }
+
+        /// <summary>
+        /// 部門名
+        /// </summary>
+        public string? OrganizationName { get; set; }
+
+        /// <summary>
+        /// デフォルト倉庫ID
+        /// </summary>
+        public int? DefaultWarehouseId { get; set; }
+
+        /// <summary>
+        /// デフォルト倉庫名
+        /// </summary>
+        public string? DefaultWarehouseName { get; set; }
 
         /// <summary>
         /// 役割

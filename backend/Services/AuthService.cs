@@ -132,7 +132,7 @@ namespace LogisticsTroubleManagement.Services
                 new Claim(ClaimTypes.Name, user.Username),
                 new Claim(ClaimTypes.Role, user.Role),
                 new Claim("display_name", user.DisplayName),
-                new Claim("organization", user.Organization),
+                new Claim("organization_id", user.OrganizationId?.ToString() ?? ""),
                 new Claim("user_role_id", user.UserRoleId.ToString())
             };
 

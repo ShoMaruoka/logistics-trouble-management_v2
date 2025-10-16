@@ -14,7 +14,9 @@ import type {
   UnitCreateRequest,
   UnitUpdateRequest,
   SystemParameterCreateRequest,
-  SystemParameterUpdateRequest
+  SystemParameterUpdateRequest,
+  UserRoleCreateRequest,
+  UserRoleUpdateRequest
 } from './types';
 
 /**
@@ -825,6 +827,60 @@ export class MasterDataApi {
 
     if (!response.success) {
       throw new Error(response.errorMessage || 'システムパラメータの削除に失敗しました');
+    }
+
+    this.clearCache();
+    return response.data || true;
+  }
+
+  // =============================================
+  // ユーザーロール管理メソッド
+  // =============================================
+
+  /**
+   * ユーザーロールの作成
+   */
+  async createUserRole(data: UserRoleCreateRequest): Promise<MasterDataItem> {
+    const response = await apiClient.post<ApiResponse<MasterDataItem>>(
+      '/api/masterdata/user-roles',
+      data
+    );
+
+    if (!response.success || !response.data) {
+      throw new Error(response.errorMessage || 'ユーザーロールの作成に失敗しました');
+    }
+
+    this.clearCache();
+    return response.data;
+  }
+
+  /**
+   * ユーザーロールの更新
+   */
+  async updateUserRole(id: number, data: UserRoleUpdateRequest): Promise<MasterDataItem> {
+    const response = await apiClient.put<ApiResponse<MasterDataItem>>(
+      `/api/masterdata/user-roles/${id}`,
+      data
+    );
+
+    if (!response.success || !response.data) {
+      throw new Error(response.errorMessage || 'ユーザーロールの更新に失敗しました');
+    }
+
+    this.clearCache();
+    return response.data;
+  }
+
+  /**
+   * ユーザーロールの削除
+   */
+  async deleteUserRole(id: number): Promise<boolean> {
+    const response = await apiClient.delete<ApiResponse<boolean>>(
+      `/api/masterdata/user-roles/${id}`
+    );
+
+    if (!response.success) {
+      throw new Error(response.errorMessage || 'ユーザーロールの削除に失敗しました');
     }
 
     this.clearCache();
