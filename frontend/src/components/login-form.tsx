@@ -92,17 +92,6 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
               {loading ? "ログイン中..." : "ログイン"}
             </Button>
           </form>
-          
-          <div className="mt-6 p-4 bg-muted rounded-lg">
-            <h4 className="font-medium mb-2">デモ用アカウント</h4>
-            <p className="text-sm text-muted-foreground mb-2">
-              開発環境では以下のアカウントを使用してください：
-            </p>
-            <div className="text-sm space-y-1">
-              <p><strong>ユーザー名:</strong> admin</p>
-              <p><strong>パスワード:</strong> admin123</p>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>
