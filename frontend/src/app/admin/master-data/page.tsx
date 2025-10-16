@@ -494,7 +494,6 @@ export default function MasterDataManagementPage() {
         // ユーザー用フィールド
         username: '',
         displayName: '',
-        email: '',
         password: '',
         confirmPassword: '',
         userRoleId: undefined,
@@ -516,7 +515,6 @@ export default function MasterDataManagementPage() {
         // ユーザー用フィールド
         username: '',
         displayName: '',
-        email: '',
         password: '',
         confirmPassword: '',
         userRoleId: undefined,

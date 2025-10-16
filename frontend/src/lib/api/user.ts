@@ -89,7 +89,7 @@ export class UserApi {
       throw new Error(response.errorMessage || 'ユーザーの削除に失敗しました');
     }
 
-    return response.data || true;
+    return response.data ?? true;
   }
 
   /**
@@ -102,9 +102,8 @@ export class UserApi {
       throw new Error(response.errorMessage || 'パスワードの変更に失敗しました');
     }
 
-    return response.data || true;
-  }
-}
+    return response.data ?? true;
+  }}
 
 // シングルトンインスタンス
 export const userApi = new UserApi();

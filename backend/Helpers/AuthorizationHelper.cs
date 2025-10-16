@@ -28,12 +28,12 @@ namespace LogisticsTroubleManagement.Helpers
         /// </summary>
         /// <param name="claims">ユーザークレーム</param>
         /// <returns>システム管理者の場合true</returns>
+        /// <exception cref="ArgumentNullException">claimsがnullの場合</exception>
         public static bool IsSystemAdmin(ClaimsPrincipal claims)
         {
-            // nullチェック
             if (claims == null)
             {
-                return false;
+                throw new ArgumentNullException(nameof(claims));
             }
 
             // 認証状態チェック

@@ -148,7 +148,7 @@ import type {
 
 // 型安全なAPI呼び出し
 const incident: IncidentResponse = await incidentsApi.getIncident(1);
-const masterData: MasterDataItem[] = await masterDataApi.getOrganizations();
+const masterData: MasterDataItem[] = await masterDataApi.getWarehouses();
 ```
 
 ## 注意事項

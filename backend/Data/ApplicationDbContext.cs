@@ -102,8 +102,8 @@ namespace LogisticsTroubleManagement.Data
                 entity.Property(e => e.RecurrencePreventionMeasures).HasColumnName("再発防止策").HasMaxLength(2000);
                 entity.Property(e => e.CreatedBy).HasColumnName("作成者").IsRequired();
                 entity.Property(e => e.UpdatedBy).HasColumnName("更新者").IsRequired();
-                entity.Property(e => e.CreatedAt).HasColumnName("作成日時").IsRequired();
-                entity.Property(e => e.UpdatedAt).HasColumnName("更新日時").IsRequired();
+                entity.Property(e => e.CreatedAt).HasColumnName("作成日時").IsRequired().HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.UpdatedAt).HasColumnName("更新日時").IsRequired().HasDefaultValueSql("GETUTCDATE()");
 
                 // 外部キー関係
                 entity.HasOne(e => e.CreatedByUser)
@@ -133,7 +133,7 @@ namespace LogisticsTroubleManagement.Data
                 entity.ToTable("ユーザーロール");
                 entity.Property(e => e.Id).HasColumnName("ID");
                 entity.Property(e => e.RoleName).HasColumnName("ロール").IsRequired().HasMaxLength(50);
-                entity.Property(e => e.CreatedAt).HasColumnName("作成日時").IsRequired();
+                entity.Property(e => e.CreatedAt).HasColumnName("作成日時").IsRequired().HasDefaultValueSql("GETUTCDATE()");
 
                 // インデックス
                 entity.HasIndex(e => e.RoleName).IsUnique();
@@ -155,8 +155,8 @@ namespace LogisticsTroubleManagement.Data
                 entity.Property(e => e.DefaultWarehouseId).HasColumnName("デフォルト倉庫ID");
                 entity.Property(e => e.UserRoleId).HasColumnName("ユーザーロールID").IsRequired();
                 entity.Property(e => e.IsActive).HasColumnName("有効フラグ").HasDefaultValue(true);
-                entity.Property(e => e.CreatedAt).HasColumnName("作成日時").IsRequired();
-                entity.Property(e => e.UpdatedAt).HasColumnName("更新日時").IsRequired();
+                entity.Property(e => e.CreatedAt).HasColumnName("作成日時").IsRequired().HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.UpdatedAt).HasColumnName("更新日時").IsRequired().HasDefaultValueSql("GETUTCDATE()");
 
                 // 外部キー関係
                 entity.HasOne(e => e.UserRole)
@@ -179,8 +179,8 @@ namespace LogisticsTroubleManagement.Data
                 entity.Property(e => e.Id).HasColumnName("ID");
                 entity.Property(e => e.Name).HasColumnName("名称").IsRequired().HasMaxLength(50);
                 entity.Property(e => e.IsActive).HasColumnName("有効フラグ").HasDefaultValue(true);
-                entity.Property(e => e.CreatedAt).HasColumnName("作成日時").IsRequired();
-                entity.Property(e => e.UpdatedAt).HasColumnName("更新日時").IsRequired();
+                entity.Property(e => e.CreatedAt).HasColumnName("作成日時").IsRequired().HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.UpdatedAt).HasColumnName("更新日時").IsRequired().HasDefaultValueSql("GETUTCDATE()");
 
                 // インデックス
                 entity.HasIndex(e => e.Name);
@@ -196,8 +196,8 @@ namespace LogisticsTroubleManagement.Data
                 entity.Property(e => e.Id).HasColumnName("ID");
                 entity.Property(e => e.Name).HasColumnName("名称").IsRequired().HasMaxLength(50);
                 entity.Property(e => e.IsActive).HasColumnName("有効フラグ").HasDefaultValue(true);
-                entity.Property(e => e.CreatedAt).HasColumnName("作成日時").IsRequired();
-                entity.Property(e => e.UpdatedAt).HasColumnName("更新日時").IsRequired();
+                entity.Property(e => e.CreatedAt).HasColumnName("作成日時").IsRequired().HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.UpdatedAt).HasColumnName("更新日時").IsRequired().HasDefaultValueSql("GETUTCDATE()");
 
                 // インデックス
                 entity.HasIndex(e => e.Name);
@@ -213,8 +213,8 @@ namespace LogisticsTroubleManagement.Data
                 entity.Property(e => e.Id).HasColumnName("ID");
                 entity.Property(e => e.Name).HasColumnName("名称").IsRequired().HasMaxLength(50);
                 entity.Property(e => e.IsActive).HasColumnName("有効フラグ").HasDefaultValue(true);
-                entity.Property(e => e.CreatedAt).HasColumnName("作成日時").IsRequired();
-                entity.Property(e => e.UpdatedAt).HasColumnName("更新日時").IsRequired();
+                entity.Property(e => e.CreatedAt).HasColumnName("作成日時").IsRequired().HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.UpdatedAt).HasColumnName("更新日時").IsRequired().HasDefaultValueSql("GETUTCDATE()");
 
                 // インデックス
                 entity.HasIndex(e => e.Name);
@@ -230,8 +230,8 @@ namespace LogisticsTroubleManagement.Data
                 entity.Property(e => e.Id).HasColumnName("ID");
                 entity.Property(e => e.Name).HasColumnName("名称").IsRequired().HasMaxLength(50);
                 entity.Property(e => e.IsActive).HasColumnName("有効フラグ").HasDefaultValue(true);
-                entity.Property(e => e.CreatedAt).HasColumnName("作成日時").IsRequired();
-                entity.Property(e => e.UpdatedAt).HasColumnName("更新日時").IsRequired();
+                entity.Property(e => e.CreatedAt).HasColumnName("作成日時").IsRequired().HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.UpdatedAt).HasColumnName("更新日時").IsRequired().HasDefaultValueSql("GETUTCDATE()");
 
                 // インデックス
                 entity.HasIndex(e => e.Name);
@@ -247,8 +247,8 @@ namespace LogisticsTroubleManagement.Data
                 entity.Property(e => e.Id).HasColumnName("ID");
                 entity.Property(e => e.Name).HasColumnName("名称").IsRequired().HasMaxLength(50);
                 entity.Property(e => e.IsActive).HasColumnName("有効フラグ").HasDefaultValue(true);
-                entity.Property(e => e.CreatedAt).HasColumnName("作成日時").IsRequired();
-                entity.Property(e => e.UpdatedAt).HasColumnName("更新日時").IsRequired();
+                entity.Property(e => e.CreatedAt).HasColumnName("作成日時").IsRequired().HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.UpdatedAt).HasColumnName("更新日時").IsRequired().HasDefaultValueSql("GETUTCDATE()");
 
                 // インデックス
                 entity.HasIndex(e => e.Name);
@@ -265,8 +265,8 @@ namespace LogisticsTroubleManagement.Data
                 entity.Property(e => e.Name).HasColumnName("名称").IsRequired().HasMaxLength(50);
                 entity.Property(e => e.TroubleCategoryId).HasColumnName("トラブル区分ID").IsRequired();
                 entity.Property(e => e.IsActive).HasColumnName("有効フラグ").HasDefaultValue(true);
-                entity.Property(e => e.CreatedAt).HasColumnName("作成日時").IsRequired();
-                entity.Property(e => e.UpdatedAt).HasColumnName("更新日時").IsRequired();
+                entity.Property(e => e.CreatedAt).HasColumnName("作成日時").IsRequired().HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.UpdatedAt).HasColumnName("更新日時").IsRequired().HasDefaultValueSql("GETUTCDATE()");
 
                 // 外部キー関係
                 entity.HasOne(e => e.TroubleCategory)
@@ -290,8 +290,8 @@ namespace LogisticsTroubleManagement.Data
                 entity.Property(e => e.Code).HasColumnName("コード").IsRequired().HasMaxLength(10);
                 entity.Property(e => e.Name).HasColumnName("名称").IsRequired().HasMaxLength(20);
                 entity.Property(e => e.IsActive).HasColumnName("有効フラグ").HasDefaultValue(true);
-                entity.Property(e => e.CreatedAt).HasColumnName("作成日時").IsRequired();
-                entity.Property(e => e.UpdatedAt).HasColumnName("更新日時").IsRequired();
+                entity.Property(e => e.CreatedAt).HasColumnName("作成日時").IsRequired().HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.UpdatedAt).HasColumnName("更新日時").IsRequired().HasDefaultValueSql("GETUTCDATE()");
 
                 // インデックス
                 entity.HasIndex(e => e.Code).IsUnique();
@@ -312,8 +312,8 @@ namespace LogisticsTroubleManagement.Data
                 entity.Property(e => e.Description).HasColumnName("説明").HasMaxLength(1000);
                 entity.Property(e => e.DataType).HasColumnName("データ型").IsRequired().HasMaxLength(50);
                 entity.Property(e => e.IsActive).HasColumnName("有効フラグ").HasDefaultValue(true);
-                entity.Property(e => e.CreatedAt).HasColumnName("作成日時").IsRequired();
-                entity.Property(e => e.UpdatedAt).HasColumnName("更新日時").IsRequired();
+                entity.Property(e => e.CreatedAt).HasColumnName("作成日時").IsRequired().HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.UpdatedAt).HasColumnName("更新日時").IsRequired().HasDefaultValueSql("GETUTCDATE()");
                 entity.Property(e => e.CreatedBy).HasColumnName("作成者");
                 entity.Property(e => e.UpdatedBy).HasColumnName("更新者");
 
@@ -332,10 +332,10 @@ namespace LogisticsTroubleManagement.Data
         {
             // ユーザーロールの初期データ
             modelBuilder.Entity<UserRole>().HasData(
-                new UserRole { Id = 1, RoleName = "システム管理者", CreatedAt = DateTime.UtcNow },
-                new UserRole { Id = 2, RoleName = "部門管理者", CreatedAt = DateTime.UtcNow },
-                new UserRole { Id = 3, RoleName = "倉庫管理者", CreatedAt = DateTime.UtcNow },
-                new UserRole { Id = 4, RoleName = "一般ユーザー", CreatedAt = DateTime.UtcNow }
+                new UserRole { Id = 1, RoleName = "システム管理者", CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+                new UserRole { Id = 2, RoleName = "部門管理者", CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+                new UserRole { Id = 3, RoleName = "倉庫管理者", CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+                new UserRole { Id = 4, RoleName = "一般ユーザー", CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc) }
             );
 
             // 管理者ユーザーの作成
@@ -349,8 +349,8 @@ namespace LogisticsTroubleManagement.Data
                     OrganizationId = 1, // 本社Aの部門ID
                     UserRoleId = 1, // システム管理者
                     IsActive = true,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
+                    CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                    UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
                 }
             );
         }

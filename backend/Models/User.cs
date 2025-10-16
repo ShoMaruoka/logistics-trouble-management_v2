@@ -66,12 +66,12 @@ namespace LogisticsTroubleManagement.Models
         /// <summary>
         /// 作成日時
         /// </summary>
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; }
 
         /// <summary>
         /// 更新日時
         /// </summary>
-        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime UpdatedAt { get; set; }
 
         /// <summary>
         /// 最終ログイン日時（データベースに存在しないため無視）
