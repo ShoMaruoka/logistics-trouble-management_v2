@@ -14,8 +14,28 @@ export function useApi<T>(
   const [error, setError] = useState<string | null>(null);
 
   const execute = useCallback(async () => {
+    console.log('Executing API call...');
     // 認証が必要で、まだ認証されていない場合は実行しない
     if (requireAuth && !authApi.isAuthenticated()) {
+      console.log('Authentication required but not authenticated, skipping API call');
+      // 認証状態を再チェックしてから再試行
+      try {
+        const isValid = await authApi.ensureValidToken();
+        if (isValid) {
+          console.log('Token refreshed, retrying API call...');
+          // トークンが更新された場合は再試行
+          setLoading(true);
+          setError(null);
+          const result = await apiCall();
+          console.log('API call result (retry):', result);
+          setData(result);
+          setLoading(false);
+          return result;
+        }
+      } catch (error) {
+        console.log('Token refresh failed:', error);
+        setLoading(false);
+      }
       return;
     }
 
@@ -35,6 +55,7 @@ export function useApi<T>(
       }
 
       const result = await apiCall();
+      console.log('API call result:', result);
       setData(result);
       return result;
     } catch (err) {
@@ -69,13 +90,18 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   const checkAuth = useCallback(async () => {
+    console.log('Checking auth state...');
     setLoading(true);
     try {
       if (authApi.isAuthenticated()) {
+        console.log('Token exists, validating...');
         const userData = await authApi.validateToken();
+        console.log('Token validation successful:', userData);
         setUser(userData);
         setIsAuthenticated(true);
+        console.log('Auth state updated in checkAuth:', { isAuthenticated: true, user: userData });
       } else {
+        console.log('No valid token found');
         setUser(null);
         setIsAuthenticated(false);
       }
@@ -83,8 +109,16 @@ export function useAuth() {
       console.error('Auth check failed:', error);
       setUser(null);
       setIsAuthenticated(false);
-      // 認証エラーの場合はトークンをクリア
-      await authApi.logout();
+      // 認証エラーの場合はトークンをクリア（既にクリアされている可能性がある）
+      // ただし、頻繁なクリアを避けるため、エラーの詳細を確認
+      if (error instanceof Error && (error.message.includes('401') || error.message.includes('Authentication'))) {
+        try {
+          await authApi.logout();
+        } catch (logoutError) {
+          // ログアウトエラーは無視（既にクリアされている可能性）
+          console.warn('Logout failed during auth check:', logoutError);
+        }
+      }
     } finally {
       setLoading(false);
     }
@@ -95,21 +129,18 @@ export function useAuth() {
     try {
       const authResponse = await authApi.login(credentials);
       
-      // トークンが保存されているか確認
-      
       // 状態を同期的に更新
       setUser(authResponse.user);
       setIsAuthenticated(true);
       setLoading(false);
       
+      console.log('Login successful, auth state updated:', {
+        isAuthenticated: true,
+        user: authResponse.user
+      });
       
-      // 認証状態の確認（デバッグ用）
-      
-      // 認証状態の更新を確実にするため、少し遅延してから再度チェック
-      setTimeout(() => {
-        // 認証状態を再チェック
-        checkAuth();
-      }, 100);
+      // 認証状態は既に同期的に更新されているため、追加のチェックは不要
+      console.log('Login completed, auth state updated synchronously');
       
       return authResponse;
     } catch (error) {
@@ -119,7 +150,7 @@ export function useAuth() {
       setLoading(false);
       throw error;
     }
-  }, []);
+  }, [checkAuth]);
 
   const logout = useCallback(async () => {
     setLoading(true);
@@ -136,6 +167,33 @@ export function useAuth() {
     // 初期化時に認証状態をチェック
     checkAuth();
   }, [checkAuth]);
+
+  // 認証状態の変化を監視（localStorageの変更を検知）
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      console.log('Storage change detected:', e.key, e.newValue);
+      if (e.key === 'ltm_auth_token' || e.key === 'ltm_token_expiry') {
+        // トークンが変更された場合は認証状態を再チェック
+        console.log('Token change detected, rechecking auth...');
+        checkAuth();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [checkAuth]);
+
+  // 定期的な認証状態チェックは無効化（トークンクリアの原因となる可能性があるため）
+  // useEffect(() => {
+  //   const interval = setInterval(() => {
+  //     if (authApi.isAuthenticated() !== isAuthenticated) {
+  //       console.log('Auth state mismatch detected, rechecking...');
+  //       checkAuth();
+  //     }
+  //   }, 5000);
+
+  //   return () => clearInterval(interval);
+  // }, [isAuthenticated, checkAuth]);
 
   return {
     isAuthenticated,

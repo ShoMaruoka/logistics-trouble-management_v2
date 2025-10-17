@@ -236,20 +236,45 @@ namespace LogisticsTroubleManagement.Services
         {
             try
             {
+                _logger.LogInformation("認証試行: ユーザー名={Username}", username);
+                
                 var user = await _context.Users
                     .Include(u => u.UserRole)
                     .FirstOrDefaultAsync(u => u.Username == username && u.IsActive);
 
                 if (user == null)
                 {
+                    _logger.LogWarning("ユーザーが見つかりません: {Username}", username);
                     return ApiResponseDto<UserResponseDto>.ErrorResponse("ユーザー名またはパスワードが正しくありません");
                 }
 
-                if (!BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
+                _logger.LogInformation("ユーザーが見つかりました: {Username}, 有効フラグ={IsActive}", username, user.IsActive);
+                _logger.LogInformation("パスワードハッシュ: {PasswordHash}", user.PasswordHash);
+
+                // 一時的なデバッグ用：平文パスワードとの比較も試行
+                bool passwordValid = false;
+                
+                // BCrypt検証
+                if (BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
                 {
+                    passwordValid = true;
+                    _logger.LogInformation("BCrypt検証成功: {Username}", username);
+                }
+                // 平文パスワードとの比較（デバッグ用）
+                else if (user.Password == password)
+                {
+                    passwordValid = true;
+                    _logger.LogWarning("平文パスワード検証成功（デバッグ用）: {Username}", username);
+                }
+                
+                if (!passwordValid)
+                {
+                    _logger.LogWarning("パスワード検証失敗: {Username}, 入力パスワード={Password}, DBパスワード={DbPassword}, DBハッシュ={DbHash}", 
+                        username, password, user.Password, user.PasswordHash);
                     return ApiResponseDto<UserResponseDto>.ErrorResponse("ユーザー名またはパスワードが正しくありません");
                 }
 
+                _logger.LogInformation("認証成功: {Username}", username);
                 var userDto = _mapper.Map<UserResponseDto>(user);
                 return ApiResponseDto<UserResponseDto>.SuccessResponse(userDto);
             }

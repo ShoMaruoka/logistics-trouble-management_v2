@@ -47,14 +47,6 @@ export function HeaderNavigation() {
                 ダッシュボード
               </Link>
               
-              {isSystemAdmin(user) && (
-                <Link 
-                  href="/admin/master-data" 
-                  className="text-gray-600 hover:text-gray-900 transition-colors"
-                >
-                  マスタデータ管理
-                </Link>
-              )}
             </nav>
           </div>
 
@@ -83,17 +75,6 @@ export function HeaderNavigation() {
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   
-                  {isSystemAdmin(user) && (
-                    <>
-                      <DropdownMenuItem asChild>
-                        <Link href="/admin/master-data" className="flex items-center">
-                          <Settings className="mr-2 h-4 w-4" />
-                          マスタデータ管理
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                    </>
-                  )}
                   
                   <DropdownMenuItem onClick={handleLogout} className="text-red-600">
                     <LogOut className="mr-2 h-4 w-4" />

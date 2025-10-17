@@ -99,16 +99,38 @@ namespace LogisticsTroubleManagement.Services
             return CalculateIncidentStatus(incident);
         }
 
-        public async Task<Dictionary<int, string>> CalculateIncidentStatusesAsync(List<Incident> incidents)
+        public Task<Dictionary<int, string>> CalculateIncidentStatusesAsync(List<Incident> incidents)
         {
             var statuses = new Dictionary<int, string>();
             var uncachedIncidents = new List<Incident>();
+            var now = DateTime.UtcNow;
 
-            // キャッシュから取得
+            // キャッシュから取得（期限チェックが必要な場合はキャッシュを無視）
             foreach (var incident in incidents)
             {
                 var cacheKey = $"incident_status_{incident.Id}";
-                if (_cache.TryGetValue(cacheKey, out string? cachedStatus))
+                var shouldUseCache = true;
+                
+                // 2次情報が未完了で、期限が過ぎている可能性がある場合はキャッシュを無視
+                if (!IsSecondInfoCompleted(incident))
+                {
+                    var deadline = incident.CreationDate.AddDays(7);
+                    if (now > deadline)
+                    {
+                        shouldUseCache = false;
+                    }
+                }
+                // 2次情報完了済みで3次情報が未完了の場合も期限チェック
+                else if (!IsThirdInfoCompleted(incident) && incident.InputDate.HasValue)
+                {
+                    var deadline = incident.InputDate.Value.AddDays(7);
+                    if (now > deadline)
+                    {
+                        shouldUseCache = false;
+                    }
+                }
+
+                if (shouldUseCache && _cache.TryGetValue(cacheKey, out string? cachedStatus) && cachedStatus != null)
                 {
                     statuses[incident.Id] = cachedStatus;
                 }
@@ -124,12 +146,25 @@ namespace LogisticsTroubleManagement.Services
                 var status = CalculateIncidentStatus(incident);
                 statuses[incident.Id] = status;
                 
-                // キャッシュに保存
+                // キャッシュに保存（期限が近い場合は短い有効期限を設定）
                 var cacheKey = $"incident_status_{incident.Id}";
-                _cache.Set(cacheKey, status, TimeSpan.FromMinutes(5));
+                var cacheExpiry = TimeSpan.FromMinutes(5);
+                
+                // 期限が近い場合は短いキャッシュ時間を設定
+                if (!IsSecondInfoCompleted(incident))
+                {
+                    var deadline = incident.CreationDate.AddDays(7);
+                    var timeToDeadline = deadline - now;
+                    if (timeToDeadline.TotalMinutes < 60) // 1時間以内の場合は1分キャッシュ
+                    {
+                        cacheExpiry = TimeSpan.FromMinutes(1);
+                    }
+                }
+                
+                _cache.Set(cacheKey, status, cacheExpiry);
             }
 
-            return statuses;
+            return Task.FromResult(statuses);
         }
 
         /// <summary>
@@ -139,6 +174,42 @@ namespace LogisticsTroubleManagement.Services
         {
             var cacheKey = $"incident_status_{incidentId}";
             _cache.Remove(cacheKey);
+        }
+
+        /// <summary>
+        /// 期限切れの可能性があるインシデントのキャッシュをクリア
+        /// </summary>
+        public void ClearExpiredIncidentStatusCache(List<Incident> incidents)
+        {
+            var now = DateTime.UtcNow;
+            foreach (var incident in incidents)
+            {
+                var shouldClearCache = false;
+                
+                // 2次情報が未完了で期限が過ぎている場合
+                if (!IsSecondInfoCompleted(incident))
+                {
+                    var deadline = incident.CreationDate.AddDays(7);
+                    if (now > deadline)
+                    {
+                        shouldClearCache = true;
+                    }
+                }
+                // 2次情報完了済みで3次情報が未完了で期限が過ぎている場合
+                else if (!IsThirdInfoCompleted(incident) && incident.InputDate.HasValue)
+                {
+                    var deadline = incident.InputDate.Value.AddDays(7);
+                    if (now > deadline)
+                    {
+                        shouldClearCache = true;
+                    }
+                }
+
+                if (shouldClearCache)
+                {
+                    ClearIncidentStatusCache(incident.Id);
+                }
+            }
         }
 
         private bool IsSecondInfoCompleted(Incident incident)

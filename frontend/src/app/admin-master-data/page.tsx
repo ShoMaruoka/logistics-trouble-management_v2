@@ -169,11 +169,11 @@ export default function MasterDataManagementPage() {
           description: "システム管理者のみアクセス可能です。",
           variant: "destructive",
         });
-        router.push('/');
+        router.push('/ltm/');
         return;
       }
     } else if (!authLoading && !user) {
-      router.push('/login');
+      router.push('/ltm/login');
     }
   }, [user, authLoading, router, toast]);
 

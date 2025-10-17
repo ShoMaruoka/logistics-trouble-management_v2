@@ -12,9 +12,6 @@ USE LTMDB;
 IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_インシデント_作成日')
     CREATE INDEX IX_インシデント_作成日 ON インシデント(作成日);
 
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_インシデント_ステータス')
-    CREATE INDEX IX_インシデント_ステータス ON インシデント(ステータス);
-
 IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_インシデント_部門ID')
     CREATE INDEX IX_インシデント_部門ID ON インシデント(部門ID);
 
@@ -29,30 +26,6 @@ IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_インシデント_ト
 
 IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_インシデント_作成者ID')
     CREATE INDEX IX_インシデント_作成者ID ON インシデント(作成者ID);
-
--- 複合インデックス
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_インシデント_ステータス_作成日')
-    CREATE INDEX IX_インシデント_ステータス_作成日 ON インシデント(ステータス, 作成日);
-
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_インシデント_部門_ステータス')
-    CREATE INDEX IX_インシデント_部門_ステータス ON インシデント(部門ID, ステータス);
-
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_インシデント_倉庫_ステータス')
-    CREATE INDEX IX_インシデント_倉庫_ステータス ON インシデント(倉庫ID, ステータス);
-
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_インシデント_区分_ステータス')
-    CREATE INDEX IX_インシデント_区分_ステータス ON インシデント(トラブル区分ID, ステータス);
-
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_インシデント_作成者_ステータス')
-    CREATE INDEX IX_インシデント_作成者_ステータス ON インシデント(作成者ID, ステータス);
-
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_インシデント_発生日時_ステータス')
-    CREATE INDEX IX_インシデント_発生日時_ステータス ON インシデント(発生日時, ステータス);
-
--- カバリングインデックス
-IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_インシデント_ステータス_カバリング')
-    CREATE INDEX IX_インシデント_ステータス_カバリング ON インシデント(ステータス) 
-    INCLUDE (ID,  作成日, 部門ID, 作成者ID);
 
 PRINT 'インシデントテーブルのインデックスを作成しました。';
 

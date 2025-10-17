@@ -24,21 +24,16 @@ builder.Host.UseSerilog();
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
-// Swaggerの設定
+// Swaggerの設定（JWT認証対応）
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo
     {
         Title = "物流トラブル管理システム API",
         Version = "v1",
-        Description = "物流品質トラブル管理システムのAPI仕様書",
-        Contact = new OpenApiContact
-        {
-            Name = "システム開発チーム",
-            Email = "dev@example.com"
-        }
+        Description = "物流品質トラブル管理システムのAPI仕様書"
     });
-
+    
     // JWT認証の設定
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
@@ -48,7 +43,7 @@ builder.Services.AddSwaggerGen(c =>
         Type = SecuritySchemeType.ApiKey,
         Scheme = "Bearer"
     });
-
+    
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -60,17 +55,9 @@ builder.Services.AddSwaggerGen(c =>
                     Id = "Bearer"
                 }
             },
-            Array.Empty<string>()
+            new string[] {}
         }
     });
-
-    // XMLコメントの有効化
-    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
-    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-    if (File.Exists(xmlPath))
-    {
-        c.IncludeXmlComments(xmlPath);
-    }
 });
 
 // Entity Frameworkの設定
@@ -135,14 +122,18 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// 開発環境でのSwaggerの有効化
-if (app.Environment.IsDevelopment())
+// Swaggerの有効化（開発環境または明示的に有効化された場合）
+if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("EnableSwagger", false))
 {
-    app.UseSwagger();
+    app.UseSwagger(c =>
+    {
+        c.RouteTemplate = "swagger/{documentName}/swagger.json";
+    });
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "物流トラブル管理システム API v1");
-        c.RoutePrefix = string.Empty; // ルートパスでSwagger UIを表示
+        c.RoutePrefix = "LTMAPI"; // /LTMAPI パスでSwagger UIを表示
+        c.DocumentTitle = "物流トラブル管理システム API";
     });
 }
 

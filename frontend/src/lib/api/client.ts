@@ -57,7 +57,9 @@ class ApiClient {
       switch (response.status) {
         case 401:
           errorType = ApiErrorType.AUTHENTICATION_ERROR;
+          console.warn('Authentication error (401) - clearing tokens');
           // 認証エラーの場合はトークンをクリア
+          // ただし、頻繁なクリアを避けるため、ログを出力
           this.clearAuthTokens();
           break;
         case 403:
@@ -223,9 +225,21 @@ class ApiClient {
   clearAuthTokens(): void {
     if (typeof window === 'undefined') return;
     
+    console.log('Clearing auth tokens');
+    const oldToken = localStorage.getItem(API_CONFIG.AUTH.TOKEN_KEY);
     localStorage.removeItem(API_CONFIG.AUTH.TOKEN_KEY);
     localStorage.removeItem(API_CONFIG.AUTH.REFRESH_TOKEN_KEY);
     localStorage.removeItem(API_CONFIG.AUTH.TOKEN_EXPIRY_KEY);
+    
+    // 認証状態の変更を通知（他のタブやコンポーネントに通知）
+    if (oldToken) {
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: API_CONFIG.AUTH.TOKEN_KEY,
+        oldValue: oldToken,
+        newValue: null,
+        storageArea: localStorage
+      }));
+    }
   }
 
   /**

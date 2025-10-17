@@ -39,6 +39,7 @@ export function LoginForm({ onLoginSuccess }: LoginFormProps) {
       });
       
       // ログイン成功後、即座にコールバックを実行
+      console.log('Executing login success callback...');
       onLoginSuccess?.();
     } catch (error) {
       toast({

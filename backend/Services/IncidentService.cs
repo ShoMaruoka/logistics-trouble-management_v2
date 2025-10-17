@@ -79,6 +79,9 @@ namespace LogisticsTroubleManagement.Services
                     .Take(searchDto.Limit)
                     .ToListAsync();
 
+                // 期限切れの可能性があるキャッシュをクリア
+                _statusCalculationService.ClearExpiredIncidentStatusCache(incidents);
+
                 // 動的ステータス計算
                 var statuses = await _statusCalculationService.CalculateIncidentStatusesAsync(incidents);
 

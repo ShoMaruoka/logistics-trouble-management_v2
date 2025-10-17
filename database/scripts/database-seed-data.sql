@@ -120,23 +120,8 @@ END
 IF NOT EXISTS (SELECT * FROM ユーザー WHERE ユーザーID = 'admin')
 BEGIN
     INSERT INTO ユーザー (ユーザーID, 氏名, パスワード,パスワードハッシュ, 部門ID, ユーザーロールID, デフォルト倉庫ID) VALUES
-    ('admin', 'システム管理者', 'admin123', '$2a$11$rQZ8K9vL2nF5mH8jP3qW0eI7sT4uY6xE9cA2bN5mP8qR1tU4wX7zA0dG3fJ6iL9o', 1, 1, NULL);
+    ('admin', 'システム管理者', 'admin123', '$2a$11$N9qo8uLOickgx2ZMRZoMye.IjdQjOqL3zVj8K2pP1mF5nH7qR9tU2wX5zA8cE1fI4lO7r', 1, 1, NULL);
     PRINT 'システム管理者ユーザーを作成しました。';
-END
-
--- 倉庫管理者のサンプルユーザー
-IF NOT EXISTS (SELECT * FROM ユーザー WHERE ユーザーID = 'warehouse_manager_01')
-BEGIN
-    INSERT INTO ユーザー (ユーザーID, 氏名, パスワード,パスワードハッシュ, 部門ID, ユーザーロールID, デフォルト倉庫ID) VALUES
-    ('warehouse_manager_01', '倉庫管理者01', 'wh123', '$2a$11$rQZ8K9vL2nF5mH8jP3qW0eI7sT4uY6xE9cA2bN5mP8qR1tU4wX7zA0dG3fJ6iL9o', 1, 3, 2);
-        PRINT '倉庫管理者ユーザーを作成しました。';
-END
-
--- 一般ユーザーのサンプル
-IF NOT EXISTS (SELECT * FROM ユーザー WHERE ユーザーID = 'user_01')
-BEGIN
-    INSERT INTO ユーザー (ユーザーID, 氏名, パスワード,パスワードハッシュ, 部門ID, ユーザーロールID, デフォルト倉庫ID) VALUES
-    ('user_01', '一般ユーザー01', 'user123', '$2a$11$rQZ8K9vL2nF5mH8jP3qW0eI7sT4uY6xE9cA2bN5mP8qR1tU4wX7zA0dG3fJ6iL9o', 1, 4, NULL);
 END
 
 -- =============================================

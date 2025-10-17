@@ -121,6 +121,30 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
   
   useEffect(() => {
     if (incidentToEdit) {
+      // フォームの値を更新
+      form.reset({
+        creationDate: incidentToEdit.creationDate || format(new Date(), 'yyyy-MM-dd'),
+        organization: incidentToEdit.organization || "",
+        creator: incidentToEdit.creator || "",
+        occurrenceDateTime: incidentToEdit.occurrenceDateTime ? format(new Date(incidentToEdit.occurrenceDateTime), "yyyy-MM-dd'T'HH:mm") : format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+        occurrenceLocation: incidentToEdit.occurrenceLocation || "",
+        shippingWarehouse: incidentToEdit.shippingWarehouse || "",
+        shippingCompany: incidentToEdit.shippingCompany || "",
+        troubleCategory: incidentToEdit.troubleCategory || "",
+        troubleDetailCategory: incidentToEdit.troubleDetailCategory || "",
+        details: incidentToEdit.details || "",
+        voucherNumber: incidentToEdit.voucherNumber || undefined,
+        customerCode: incidentToEdit.customerCode || undefined,
+        productCode: incidentToEdit.productCode || undefined,
+        quantity: incidentToEdit.quantity || undefined,
+        unit: incidentToEdit.unit || undefined,
+        inputDate: incidentToEdit.inputDate ? format(new Date(incidentToEdit.inputDate), "yyyy-MM-dd") : format(new Date(), 'yyyy-MM-dd'),
+        processDescription: incidentToEdit.processDescription || undefined,
+        cause: incidentToEdit.cause || undefined,
+        photoDataUri: incidentToEdit.photoDataUri || undefined,
+        inputDate3: incidentToEdit.inputDate3 ? format(new Date(incidentToEdit.inputDate3), "yyyy-MM-dd") : format(new Date(), 'yyyy-MM-dd'),
+        recurrencePreventionMeasures: incidentToEdit.recurrencePreventionMeasures || undefined,
+      });
 
       if (incidentToEdit.photoDataUri) {
         setImagePreview(incidentToEdit.photoDataUri);
@@ -130,7 +154,7 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
     } else {
       setImagePreview(null);
     }
-  }, [incidentToEdit]);
+  }, [incidentToEdit, form]);
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];

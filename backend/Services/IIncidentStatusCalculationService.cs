@@ -8,5 +8,6 @@ namespace LogisticsTroubleManagement.Services
         Task<string> CalculateIncidentStatusAsync(int incidentId);
         Task<Dictionary<int, string>> CalculateIncidentStatusesAsync(List<Incident> incidents);
         void ClearIncidentStatusCache(int incidentId);
+        void ClearExpiredIncidentStatusCache(List<Incident> incidents);
     }
 }

@@ -14,7 +14,7 @@
 
 ## プロジェクト構造
 ```
-logistics-trouble-management_v2/
+logistics-trouble-management/
 ├── frontend/                 # Next.js フロントエンド
 │   ├── src/                 # ソースコード
 │   ├── public/              # 静的ファイル

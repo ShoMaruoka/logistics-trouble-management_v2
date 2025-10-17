@@ -37,6 +37,8 @@ import { useApi, useAuth, useMasterData } from "@/hooks/useApi";
 import { incidentsApi } from "@/lib/api";
 import { convertApiIncidentToFrontend, convertFrontendIncidentToApiUpdateRequest, convertFrontendIncidentToApiCreateRequest } from "@/lib/apiAdapter";
 import { LoginForm } from "@/components/login-form";
+import { MasterDataManagement } from "@/components/master-data-management";
+import { isSystemAdmin } from "@/lib/auth";
 // import { HeaderNavigation } from "@/components/HeaderNavigation";
 
 
@@ -98,36 +100,71 @@ export default function Home() {
   
   // デバッグ用：認証状態の変化をログに出力
   useEffect(() => {
+    console.log('Auth state changed:', {
+      isAuthenticated,
+      user: user ? { id: user.id, username: user.username, userRoleId: user.userRoleId } : null,
+      authLoading,
+      masterDataLoading,
+      incidentsLoading
+    });
   }, [isAuthenticated, user, authLoading, masterDataLoading, incidentsLoading]);
 
-  // 認証完了後のデータ再取得（一度だけ実行）
+  // 認証完了後のデータ再取得
   const hasRefetchedAfterAuth = useRef(false);
+  const lastAuthState = useRef({ isAuthenticated: false, userId: null });
+  
   useEffect(() => {
-    if (isAuthenticated && !authLoading && !incidentsLoading && !hasRefetchedAfterAuth.current) {
-      hasRefetchedAfterAuth.current = true;
-      refetchIncidents();
-    }
-  }, [isAuthenticated, authLoading, incidentsLoading, refetchIncidents]);
-
-  // 認証状態の変更を監視して、必要に応じて再チェック
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (!isAuthenticated && !authLoading) {
-        // 認証されていない状態で、ローディング中でもない場合、認証状態を再チェック
-        checkAuth();
+    const currentAuthState = { 
+      isAuthenticated, 
+      userId: user?.id || null 
+    };
+    
+    // 認証状態が変更された場合（ログイン/ログアウト/ユーザー変更）
+    const authStateChanged = 
+      lastAuthState.current.isAuthenticated !== currentAuthState.isAuthenticated ||
+      lastAuthState.current.userId !== currentAuthState.userId;
+    
+    if (isAuthenticated && !authLoading && !incidentsLoading) {
+      if (authStateChanged || !hasRefetchedAfterAuth.current) {
+        console.log('Auth state changed or first time, refetching incidents...', {
+          authStateChanged,
+          hasRefetched: hasRefetchedAfterAuth.current,
+          currentAuth: currentAuthState,
+          lastAuth: lastAuthState.current
+        });
+        hasRefetchedAfterAuth.current = true;
+        refetchIncidents();
       }
-    }, 1000);
+    }
+    
+    // 認証状態を更新
+    lastAuthState.current = currentAuthState;
+  }, [isAuthenticated, user?.id, authLoading, incidentsLoading, refetchIncidents]);
 
-    return () => clearInterval(interval);
-  }, [isAuthenticated, authLoading, checkAuth]);
+  // 認証状態の変更を監視して、必要に応じて再チェック（無効化）
+  // useEffect(() => {
+  //   const interval = setInterval(() => {
+  //     if (!isAuthenticated && !authLoading) {
+  //       // 認証されていない状態で、ローディング中でもない場合、認証状態を再チェック
+  //       console.log('Auth state lost, rechecking...');
+  //       checkAuth();
+  //     }
+  //   }, 2000); // 間隔を2秒に延長
+
+  //   return () => clearInterval(interval);
+  // }, [isAuthenticated, authLoading, checkAuth]);
 
   // APIデータをフロントエンド形式に変換
   useEffect(() => {
+    console.log('Converting incidents data:', incidentsData);
     if (incidentsData?.incidents) {
       const convertedIncidents = incidentsData.incidents.map(incident => 
         convertApiIncidentToFrontend(incident, masterData)
       );
+      console.log('Converted incidents:', convertedIncidents);
       setIncidents(convertedIncidents);
+    } else {
+      console.log('No incidents data to convert:', incidentsData);
     }
   }, [incidentsData, selectedYear, selectedMonth, masterData]);
 
@@ -192,7 +229,10 @@ export default function Home() {
 
         // フロントエンド型をAPI型に変換
         const apiCreateData = convertFrontendIncidentToApiCreateRequest(createData, masterData);
-        await incidentsApi.createIncident(apiCreateData);
+        console.log('Creating incident with data:', apiCreateData);
+        
+        const createdIncident = await incidentsApi.createIncident(apiCreateData);
+        console.log('Created incident:', createdIncident);
         
         toast({
           title: "インシデントを作成しました",
@@ -201,9 +241,28 @@ export default function Home() {
       }
       
       // データを再取得
-      await refetchIncidents();
+      console.log('Refetching incidents after save...');
+      
+      // 認証状態を再確認してからデータを再取得
+      if (!isAuthenticated || !user) {
+        console.log('Authentication lost, rechecking auth state...');
+        await checkAuth();
+        // 認証状態を再確認
+        if (!isAuthenticated || !user) {
+          console.log('Authentication still not available, skipping refetch');
+          return;
+        }
+      }
+      
+      // データ再取得を強制実行
+      const refetchResult = await refetchIncidents();
+      console.log('Incidents refetched successfully after save:', refetchResult);
+      
+      // 認証状態の再チェックは不要（データ再取得が成功しているため）
+      
       setIsDialogOpen(false);
     } catch (error) {
+      console.error('Error saving incident:', error);
       toast({
         title: "エラーが発生しました",
         description: error instanceof Error ? error.message : "インシデントの保存に失敗しました。",
@@ -449,7 +508,11 @@ export default function Home() {
   // 認証エラーの表示
   if (!isAuthenticated) {
     return <LoginForm onLoginSuccess={() => {
-      // 認証状態は既にuseAuthフックで管理されているため、何もしない
+      // ログイン成功後、認証状態の更新を確実にするため少し待ってから再チェック
+      console.log('Login success callback executed, rechecking auth state...');
+      setTimeout(() => {
+        checkAuth();
+      }, 100);
     }} />;
   }
 
@@ -508,7 +571,16 @@ export default function Home() {
       </Dialog>
 
       <main className="container mx-auto p-4 md:p-6 space-y-6">
-        <Card>
+        <Tabs defaultValue="dashboard" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="dashboard">ダッシュボード</TabsTrigger>
+            {isSystemAdmin(user) && (
+              <TabsTrigger value="master-data">マスタ管理</TabsTrigger>
+            )}
+          </TabsList>
+          
+          <TabsContent value="dashboard" className="space-y-6">
+            <Card>
             <CardHeader>
                 <CardTitle>物流トラブル分析</CardTitle>
             </CardHeader>
@@ -680,6 +752,18 @@ export default function Home() {
             </div>
           </CardFooter>
         </Card>
+          </TabsContent>
+          
+          {isSystemAdmin(user) && (
+            <TabsContent value="master-data" className="space-y-6">
+              <MasterDataManagement 
+                user={user}
+                isAuthenticated={isAuthenticated}
+                authLoading={authLoading}
+              />
+            </TabsContent>
+          )}
+        </Tabs>
       </main>
     </div>
   );

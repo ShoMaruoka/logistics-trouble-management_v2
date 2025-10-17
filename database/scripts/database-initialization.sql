@@ -138,8 +138,7 @@ BEGIN
         デフォルト倉庫ID INT,
         有効フラグ BIT NOT NULL DEFAULT 1,
         作成日時 DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-        更新日時 DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-        FOREIGN KEY (ユーザーロールID) REFERENCES ユーザーロール(ID)
+        更新日時 DATETIME2 NOT NULL DEFAULT GETUTCDATE()
     );
     PRINT 'ユーザーテーブルを作成しました。';
 END
