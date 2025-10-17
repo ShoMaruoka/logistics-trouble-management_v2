@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CalendarIcon, X } from "lucide-react";
+import { CalendarIcon, X, Download } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
 import * as z from "zod";
 import { useState, useEffect } from "react";
@@ -175,6 +175,39 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
     const fileInput = document.getElementById('photo-upload') as HTMLInputElement | null;
     if(fileInput) fileInput.value = '';
   };
+
+  const handleDownloadImage = () => {
+    if (!imagePreview) return;
+    
+    try {
+      // DataURIからファイル名を生成
+      const incidentId = incidentToEdit?.id || 'new';
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+      const filename = `incident_${incidentId}_photo_${timestamp}.jpg`;
+      
+      // DataURIをBlobに変換
+      const byteString = atob(imagePreview.split(',')[1]);
+      const mimeString = imagePreview.split(',')[0].split(':')[1].split(';')[0];
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+      const blob = new Blob([ab], { type: mimeString });
+      
+      // ダウンロード実行
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('画像のダウンロードに失敗しました:', error);
+    }
+  };
   
   const handleSaveSection = async (infoLevel: 1 | 2 | 3) => {
     let schema;
@@ -309,7 +342,14 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
                   {imagePreview && (
                     <div className="relative mt-2 w-48">
                       <img src={imagePreview} alt="プレビュー" className="w-full rounded-md border" />
-                      <Button type="button" variant="destructive" size="icon" className="absolute top-1 right-1 h-6 w-6" onClick={handleRemoveImage}><X className="h-4 w-4" /></Button>
+                      <div className="absolute top-1 right-1 flex gap-1">
+                        <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={handleDownloadImage} title="画像をダウンロード">
+                          <Download className="h-3 w-3" />
+                        </Button>
+                        <Button type="button" variant="destructive" size="icon" className="h-6 w-6" onClick={handleRemoveImage} title="画像を削除">
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
                   )}
                   <FormMessage />
