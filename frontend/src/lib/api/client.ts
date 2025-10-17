@@ -272,8 +272,8 @@ class ApiClient {
     
     try {
       const expiryDate = new Date(expiry);
-      // 5分前に期限切れとみなす
-      const bufferTime = 5 * 60 * 1000; // 5分
+      // 2分前に期限切れとみなす
+      const bufferTime = 2 * 60 * 1000; // 2分
       return expiryDate.getTime() - Date.now() < bufferTime;
     } catch {
       return true;

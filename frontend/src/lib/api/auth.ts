@@ -25,7 +25,8 @@ export class AuthApi {
     }
 
     // トークンを保存（有効期限を計算）
-    const expiresAt = new Date(Date.now() + response.data.expiresIn * 1000).toISOString();
+    // expiresInは分単位で返されるため、60倍して秒単位に変換
+    const expiresAt = new Date(Date.now() + response.data.expiresIn * 60 * 1000).toISOString();
     apiClient.setAuthTokens(
       response.data.accessToken,
       '', // リフレッシュトークンは現在バックエンドで提供されていない
@@ -71,7 +72,8 @@ export class AuthApi {
     }
 
     // 新しいトークンを保存（有効期限を計算）
-    const expiresAt = new Date(Date.now() + response.data.expiresIn * 1000).toISOString();
+    // expiresInは分単位で返されるため、60倍して秒単位に変換
+    const expiresAt = new Date(Date.now() + response.data.expiresIn * 60 * 1000).toISOString();
     apiClient.setAuthTokens(
       response.data.accessToken,
       '', // リフレッシュトークンは現在バックエンドで提供されていない
