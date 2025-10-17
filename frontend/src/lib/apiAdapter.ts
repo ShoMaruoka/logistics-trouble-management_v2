@@ -54,7 +54,7 @@ export function convertFrontendIncidentToApiRequest(
   masterData: any
 ): IncidentRequest {
   return {
-    creationDate: frontendIncident.creationDate || new Date().toISOString().split('T')[0],
+    creationDate: frontendIncident.creationDate!,
     organization: convertNameToId(frontendIncident.organization!, masterData?.organizations) || convertOrganizationNameToId(frontendIncident.organization!, masterData),
     creator: 1, // 実際の実装では現在のユーザーIDを設定
     occurrenceDateTime: frontendIncident.occurrenceDateTime!,

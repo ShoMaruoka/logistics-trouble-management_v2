@@ -224,7 +224,7 @@ export default function Home() {
         // 新規インシデントの作成
         const createData = {
           ...data,
-          creationDate: todayStr,
+          // 作成日はユーザーが入力した値をそのまま使用（上書きしない）
         };
 
         // フロントエンド型をAPI型に変換
