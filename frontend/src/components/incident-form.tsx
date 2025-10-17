@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CalendarIcon, X } from "lucide-react";
+import { CalendarIcon, X, Download } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
 import * as z from "zod";
 import { useState, useEffect } from "react";
@@ -88,6 +88,7 @@ type IncidentFormProps = {
 
 export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormProps) {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<{ name: string; type: string; size: number } | null>(null);
   const { masterData, loading: masterLoading, error: masterError } = useMasterData();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -147,12 +148,22 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
       });
 
       if (incidentToEdit.photoDataUri) {
-        setImagePreview(incidentToEdit.photoDataUri);
+        // DataURIからファイルタイプを判定
+        const mimeType = incidentToEdit.photoDataUri.split(',')[0].split(':')[1].split(';')[0];
+        if (mimeType.startsWith('image/')) {
+          setImagePreview(incidentToEdit.photoDataUri);
+        } else {
+          setImagePreview(null);
+        }
+        // ファイル情報は不明なのでnullのまま
+        setUploadedFile(null);
       } else {
         setImagePreview(null);
+        setUploadedFile(null);
       }
     } else {
       setImagePreview(null);
+      setUploadedFile(null);
     }
   }, [incidentToEdit, form]);
 
@@ -163,7 +174,20 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
       reader.onloadend = () => {
         const dataUri = reader.result as string;
         form.setValue("photoDataUri", dataUri, { shouldValidate: true });
-        setImagePreview(dataUri);
+        
+        // ファイル情報を保存
+        setUploadedFile({
+          name: file.name,
+          type: file.type,
+          size: file.size
+        });
+        
+        // 画像ファイルの場合のみプレビューを設定
+        if (file.type.startsWith('image/')) {
+          setImagePreview(dataUri);
+        } else {
+          setImagePreview(null);
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -172,8 +196,62 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
   const handleRemoveImage = () => {
     form.setValue("photoDataUri", "", { shouldValidate: true });
     setImagePreview(null);
+    setUploadedFile(null);
     const fileInput = document.getElementById('photo-upload') as HTMLInputElement | null;
     if(fileInput) fileInput.value = '';
+  };
+
+  const handleDownloadImage = () => {
+    const photoDataUri = form.getValues("photoDataUri");
+    if (!photoDataUri) return;
+    
+    try {
+      // DataURIからMIMEタイプを取得
+      const mimeString = photoDataUri.split(',')[0].split(':')[1].split(';')[0];
+      
+      // ファイル名を生成
+      const incidentId = incidentToEdit?.id || 'new';
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+      let filename: string;
+      let extension: string;
+      
+      if (uploadedFile) {
+        // アップロードされたファイルの元の名前を使用
+        extension = uploadedFile.name.split('.').pop() || 'bin';
+        filename = `incident_${incidentId}_${timestamp}.${extension}`;
+      } else {
+        // MIMEタイプから拡張子を決定
+        if (mimeString === 'application/pdf') {
+          extension = 'pdf';
+        } else if (mimeString.startsWith('image/')) {
+          extension = mimeString.split('/')[1] || 'jpg';
+        } else {
+          extension = 'bin';
+        }
+        filename = `incident_${incidentId}_${timestamp}.${extension}`;
+      }
+      
+      // DataURIをBlobに変換
+      const byteString = atob(photoDataUri.split(',')[1]);
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+      const blob = new Blob([ab], { type: mimeString });
+      
+      // ダウンロード実行
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('ファイルのダウンロードに失敗しました:', error);
+    }
   };
   
   const handleSaveSection = async (infoLevel: 1 | 2 | 3) => {
@@ -302,14 +380,59 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
                 <FormField control={form.control} name="processDescription" render={({ field }) => ( <FormItem><FormLabel>発生経緯</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="cause" render={({ field }) => ( <FormItem><FormLabel>発生原因</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem> )} />
                 <FormItem>
-                  <FormLabel>写真</FormLabel>
+                  <FormLabel>写真・添付ファイル</FormLabel>
                   <FormControl>
-                    <Input id="photo-upload" type="file" accept="image/*" onChange={handleImageChange} className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90" />
+                    <Input id="photo-upload" type="file" accept="image/*,application/pdf" onChange={handleImageChange} className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90" />
                   </FormControl>
                   {imagePreview && (
                     <div className="relative mt-2 w-48">
                       <img src={imagePreview} alt="プレビュー" className="w-full rounded-md border" />
-                      <Button type="button" variant="destructive" size="icon" className="absolute top-1 right-1 h-6 w-6" onClick={handleRemoveImage}><X className="h-4 w-4" /></Button>
+                      <div className="absolute top-1 right-1 flex gap-1">
+                        <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={handleDownloadImage} title="ファイルをダウンロード">
+                          <Download className="h-3 w-3" />
+                        </Button>
+                        <Button type="button" variant="destructive" size="icon" className="h-6 w-6" onClick={handleRemoveImage} title="ファイルを削除">
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  {!imagePreview && uploadedFile && (
+                    <div className="mt-2 p-3 border rounded-md bg-secondary/50">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">{uploadedFile.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {uploadedFile.type} • {(uploadedFile.size / 1024).toFixed(1)} KB
+                          </p>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={handleDownloadImage} title="ファイルをダウンロード">
+                            <Download className="h-3 w-3" />
+                          </Button>
+                          <Button type="button" variant="destructive" size="icon" className="h-6 w-6" onClick={handleRemoveImage} title="ファイルを削除">
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {!imagePreview && !uploadedFile && form.getValues("photoDataUri") && (
+                    <div className="mt-2 p-3 border rounded-md bg-secondary/50">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">保存済みファイル</p>
+                          <p className="text-xs text-muted-foreground">既存のファイルが保存されています</p>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={handleDownloadImage} title="ファイルをダウンロード">
+                            <Download className="h-3 w-3" />
+                          </Button>
+                          <Button type="button" variant="destructive" size="icon" className="h-6 w-6" onClick={handleRemoveImage} title="ファイルを削除">
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   )}
                   <FormMessage />

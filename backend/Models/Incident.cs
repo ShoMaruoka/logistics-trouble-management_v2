@@ -125,7 +125,7 @@ namespace LogisticsTroubleManagement.Models
         /// <summary>
         /// 写真データURI
         /// </summary>
-        [MaxLength(500)]
+        [MaxLength(1000000)]
         public string? PhotoDataUri { get; set; }
 
         // 3次情報
