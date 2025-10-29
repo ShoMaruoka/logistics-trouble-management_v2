@@ -29,10 +29,9 @@ import { Badge } from "./ui/badge";
 import { getStatusBadgeVariant, getStatusIcon } from "./incident-list";
 import { useMasterData } from "@/hooks/useApi";
 import type { MasterDataItem } from "@/lib/api/types";
-import { units } from "@/lib/data";
 
 
-const formSchema = z.object({
+const baseFormSchema = z.object({
   // 1次情報
   creationDate: z.string().min(1, "作成日は必須です。"),
   organization: z.string().min(1, "所属組織を選択してください。"),
@@ -44,11 +43,15 @@ const formSchema = z.object({
   troubleCategory: z.string().min(1, "トラブル区分を選択してください。"),
   troubleDetailCategory: z.string().min(1, "トラブル詳細区分を選択してください。"),
   details: z.string().min(1, "内容詳細は必須です。"),
-  voucherNumber: z.string().optional(),
+  voucherNumber: z.string().optional().refine((val) => !val || /^[0-9]{9}$/.test(val), {
+    message: "9桁の正しい伝票番号を入力してください"
+  }),
   customerCode: z.string().optional(),
-  productCode: z.string().optional(),
+  productCode: z.string().optional().refine((val) => !val || val.length === 13, {
+    message: "13桁で入力してください"
+  }),
   quantity: z.coerce.number().optional(),
-  unit: z.enum(units).optional(),
+  unit: z.string().optional(),
   // 2次情報
   inputDate: z.string().optional(),
   processDescription: z.string().optional(),
@@ -59,19 +62,42 @@ const formSchema = z.object({
   recurrencePreventionMeasures: z.string().optional(),
 });
 
+const formSchema = baseFormSchema.superRefine((data, ctx) => {
+  const exempt = data.occurrenceLocation === '倉庫（入荷作業）' || data.occurrenceLocation === '倉庫（格納作業）';
+  if (!exempt) {
+    if (!data.voucherNumber) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['voucherNumber'], message: '9桁の正しい伝票番号を入力してください' });
+    }
+    if (!data.productCode) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['productCode'], message: '13桁で入力してください' });
+    }
+  }
+});
+
 // Zodスキーマをセクションごとに分割
-const info1Schema = formSchema.pick({
+const info1Base = baseFormSchema.pick({
   creationDate: true, organization: true, creator: true, occurrenceDateTime: true, occurrenceLocation: true,
   shippingWarehouse: true, shippingCompany: true, troubleCategory: true, troubleDetailCategory: true, details: true,
   voucherNumber: true, customerCode: true, productCode: true, quantity: true, unit: true,
 });
-const info2Schema = formSchema.pick({
+const info1Schema = info1Base.superRefine((data, ctx) => {
+  const exempt = data.occurrenceLocation === '倉庫（入荷作業）' || data.occurrenceLocation === '倉庫（格納作業）';
+  if (!exempt) {
+    if (!data.voucherNumber) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['voucherNumber'], message: '9桁の正しい伝票番号を入力してください' });
+    }
+    if (!data.productCode) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['productCode'], message: '13桁で入力してください' });
+    }
+  }
+});
+const info2Schema = baseFormSchema.pick({
   inputDate: true, processDescription: true, cause: true, photoDataUri: true,
 }).extend({
   processDescription: z.string().min(1, "発生経緯は必須です。"),
   cause: z.string().min(1, "発生原因は必須です。"),
 });
-const info3Schema = formSchema.pick({
+const info3Schema = baseFormSchema.pick({
   inputDate3: true, recurrencePreventionMeasures: true
 }).extend({
     recurrencePreventionMeasures: z.string().min(1, "再発防止策は必須です。"),
@@ -91,6 +117,14 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
   const [uploadedFile, setUploadedFile] = useState<{ name: string; type: string; size: number } | null>(null);
   const { masterData, loading: masterLoading, error: masterError } = useMasterData();
 
+  // 表示用: 8桁目と9桁目の間にハイフンを入れて見せる
+  const formatVoucherDisplay = (digits: string): string => {
+    if (!digits) return "";
+    const onlyDigits = digits.replace(/\D+/g, "").slice(0, 9);
+    if (onlyDigits.length <= 8) return onlyDigits;
+    return `${onlyDigits.slice(0, 8)}-${onlyDigits.slice(8)}`;
+  };
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -104,7 +138,7 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
       troubleCategory: incidentToEdit?.troubleCategory || "",
       troubleDetailCategory: incidentToEdit?.troubleDetailCategory || "",
       details: incidentToEdit?.details || "",
-      voucherNumber: incidentToEdit?.voucherNumber || undefined,
+      voucherNumber: incidentToEdit?.voucherNumber || "",
       customerCode: incidentToEdit?.customerCode || undefined,
       productCode: incidentToEdit?.productCode || undefined,
       quantity: incidentToEdit?.quantity || undefined,
@@ -134,7 +168,7 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
         troubleCategory: incidentToEdit.troubleCategory || "",
         troubleDetailCategory: incidentToEdit.troubleDetailCategory || "",
         details: incidentToEdit.details || "",
-        voucherNumber: incidentToEdit.voucherNumber || undefined,
+        voucherNumber: incidentToEdit.voucherNumber || "",
         customerCode: incidentToEdit.customerCode || undefined,
         productCode: incidentToEdit.productCode || undefined,
         quantity: incidentToEdit.quantity || undefined,
@@ -260,7 +294,7 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
 
     if (infoLevel === 1) {
         schema = info1Schema;
-        fields = Object.keys(info1Schema.shape) as (keyof z.infer<typeof formSchema>)[];
+        fields = Object.keys(info1Base.shape) as (keyof z.infer<typeof formSchema>)[];
     } else if (infoLevel === 2) {
         schema = info2Schema;
         fields = Object.keys(info2Schema.shape) as (keyof z.infer<typeof formSchema>)[];
@@ -355,11 +389,32 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
                 <FormField control={form.control} name="troubleCategory" render={({ field }) => ( <FormItem><FormLabel>トラブル区分</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={masterLoading || !isInfo1Editable}><FormControl><SelectTrigger><SelectValue placeholder={masterLoading ? "読込中..." : "選択..."} /></SelectTrigger></FormControl><SelectContent>{masterData?.troubleCategories?.map((t: MasterDataItem) => <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="troubleDetailCategory" render={({ field }) => ( <FormItem><FormLabel>トラブル詳細区分</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={masterLoading || !isInfo1Editable}><FormControl><SelectTrigger><SelectValue placeholder={masterLoading ? "読込中..." : "選択..."} /></SelectTrigger></FormControl><SelectContent>{masterData?.troubleDetailCategories?.map((t: MasterDataItem) => <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="details" render={({ field }) => ( <FormItem className="lg:col-span-3"><FormLabel>内容詳細</FormLabel><FormControl><Textarea placeholder="トラブル内容の詳細..." {...field} rows={3}/></FormControl><FormMessage /></FormItem> )} />
-                <FormField control={form.control} name="voucherNumber" render={({ field }) => ( <FormItem><FormLabel>伝票番号</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                <FormField
+                  control={form.control}
+                  name="voucherNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>伝票番号</FormLabel>
+                      <FormControl>
+                        <Input
+                          value={formatVoucherDisplay(field.value || "")}
+                          onChange={(e) => {
+                            const digitsOnly = e.target.value.replace(/\D+/g, "").slice(0, 9);
+                            field.onChange(digitsOnly);
+                          }}
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          maxLength={10} // 8桁+ハイフン+1桁 の見た目長
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <FormField control={form.control} name="customerCode" render={({ field }) => ( <FormItem><FormLabel>得意先コード</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                <FormField control={form.control} name="productCode" render={({ field }) => ( <FormItem><FormLabel>商品名CD</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="productCode" render={({ field }) => ( <FormItem><FormLabel>商品CD</FormLabel><FormControl><Input {...field} maxLength={13} /></FormControl><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="quantity" render={({ field }) => ( <FormItem><FormLabel>数量</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                <FormField control={form.control} name="unit" render={({ field }) => ( <FormItem><FormLabel>単位</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={!isInfo1Editable}><FormControl><SelectTrigger><SelectValue placeholder="選択..." /></SelectTrigger></FormControl><SelectContent>{units.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="unit" render={({ field }) => ( <FormItem><FormLabel>単位</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={masterLoading || !isInfo1Editable}><FormControl><SelectTrigger><SelectValue placeholder={masterLoading ? "読込中..." : "選択..."} /></SelectTrigger></FormControl><SelectContent>{masterData?.units?.map((u: MasterDataItem) => <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
               </CardContent>
               <CardFooter className="flex justify-end">
                 <Button type="button" onClick={() => handleSaveSection(1)}>1次情報を登録</Button>

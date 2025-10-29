@@ -9,7 +9,6 @@ export const shippingWarehouses = ["札幌倉庫", "東京倉庫", "埼玉倉庫
 export const shippingCompanies = ["ヤマト運輸", "佐川急便", "福山通運", "西濃運輸", "チャーター", "その他輸送会社"] as const;
 export const troubleCategories = ["荷役トラブル", "配送トラブル"] as const;
 export const troubleDetailCategories = ["商品間違い", "数量過不足", "送付先間違い", "発送漏れ", "破損・汚損", "紛失", "その他の商品事故"] as const;
-export const units = ["パレット", "ケース", "ボール", "ピース"] as const;
 
 const getRandomItem = <T>(arr: readonly T[]): T => arr[Math.floor(Math.random() * arr.length)];
 const getRandomDate = (start: Date, end: Date) => new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
@@ -34,7 +33,7 @@ const createIncident = (id: number, occurrenceDate: Date, status: '2次情報調
         customerCode: `CUST-${100 + id}`,
         productCode: `PROD-${200 + id}`,
         quantity: Math.floor(Math.random() * 100) + 1,
-        unit: getRandomItem(units),
+        unit: getRandomItem(["パレット", "ケース", "ボール", "ピース"]),
         status: '2次情報調査中',
     };
 
