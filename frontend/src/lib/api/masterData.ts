@@ -326,14 +326,21 @@ export class MasterDataApi {
    * 単位一覧を取得
    */
   async getUnits(): Promise<MasterDataItem[]> {
-    // バックエンドに単位エンドポイントがないため、固定データを返す
-    const now = new Date().toISOString();
-    return [
-      { id: 1, name: 'パレット', isActive: true, createdAt: now, updatedAt: now },
-      { id: 2, name: 'ケース', isActive: true, createdAt: now, updatedAt: now },
-      { id: 3, name: 'ボール', isActive: true, createdAt: now, updatedAt: now },
-      { id: 4, name: 'ピース', isActive: true, createdAt: now, updatedAt: now }
-    ];
+    const response = await apiClient.get<ApiResponse<UnitItem[]>>(
+      API_CONFIG.ENDPOINTS.MASTER_DATA.UNITS
+    );
+
+    if (!response.success || !response.data) {
+      throw new Error(response.errorMessage || '単位データの取得に失敗しました');
+    }
+
+    return response.data.map(unit => ({
+      id: unit.id,
+      name: unit.name,
+      isActive: unit.isActive,
+      createdAt: unit.createdAt,
+      updatedAt: unit.updatedAt
+    }));
   }
 
   /**
