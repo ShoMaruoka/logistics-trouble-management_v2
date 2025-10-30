@@ -18,7 +18,7 @@ export function convertApiIncidentToFrontend(apiIncident: IncidentResponse, mast
     id: apiIncident.id.toString(),
     creationDate: apiIncident.creationDate.split('T')[0], // YYYY-MM-DD形式に変換
     organization: (convertIdToName(apiIncident.organization, masterData?.organizations) || convertIdToOrganizationName(apiIncident.organization)) as Incident['organization'],
-    creator: apiIncident.creator.toString(), // 実際の実装ではユーザー名を取得
+    creator: apiIncident.creator, // 作成者名をそのまま使用
     occurrenceDateTime: apiIncident.occurrenceDateTime,
     occurrenceLocation: (convertIdToName(apiIncident.occurrenceLocation, masterData?.occurrenceLocations) || convertIdToOccurrenceLocationName(apiIncident.occurrenceLocation)) as Incident['occurrenceLocation'],
     shippingWarehouse: (convertIdToName(apiIncident.shippingWarehouse, masterData?.shippingWarehouses) || convertIdToWarehouseName(apiIncident.shippingWarehouse, masterData)) as Incident['shippingWarehouse'],
@@ -56,7 +56,7 @@ export function convertFrontendIncidentToApiRequest(
   return {
     creationDate: frontendIncident.creationDate!,
     organization: convertNameToId(frontendIncident.organization!, masterData?.organizations) || convertOrganizationNameToId(frontendIncident.organization!, masterData),
-    creator: 1, // 実際の実装では現在のユーザーIDを設定
+    creator: frontendIncident.creator!, // フォームで入力された作成者名をそのまま使用
     occurrenceDateTime: frontendIncident.occurrenceDateTime!,
     occurrenceLocation: convertNameToId(frontendIncident.occurrenceLocation!, masterData?.occurrenceLocations) || convertOccurrenceLocationNameToId(frontendIncident.occurrenceLocation!, masterData),
     shippingWarehouse: convertNameToId(frontendIncident.shippingWarehouse!, masterData?.shippingWarehouses) || convertWarehouseNameToId(frontendIncident.shippingWarehouse!, masterData),

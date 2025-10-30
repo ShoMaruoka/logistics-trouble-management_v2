@@ -11,3 +11,4 @@ frontend/.env.development
 frontend/.env.production
 frontend/out/
 publish/
+frontend/.env.production.local

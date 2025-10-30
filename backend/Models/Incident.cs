@@ -28,10 +28,11 @@ namespace LogisticsTroubleManagement.Models
         public int Organization { get; set; }
 
         /// <summary>
-        /// 作成者ID
+        /// 作成者名
         /// </summary>
         [Required]
-        public int Creator { get; set; }
+        [MaxLength(100)]
+        public string Creator { get; set; } = string.Empty;
 
         /// <summary>
         /// 発生日時

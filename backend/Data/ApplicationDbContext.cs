@@ -81,7 +81,7 @@ namespace LogisticsTroubleManagement.Data
                 entity.Property(e => e.Id).HasColumnName("ID");
                 entity.Property(e => e.CreationDate).HasColumnName("作成日").IsRequired();
                 entity.Property(e => e.Organization).HasColumnName("部門ID").IsRequired();
-                entity.Property(e => e.Creator).HasColumnName("作成者ID").IsRequired();
+                entity.Property(e => e.Creator).HasColumnName("作成者名").IsRequired();
                 entity.Property(e => e.OccurrenceDateTime).HasColumnName("発生日時").IsRequired();
                 entity.Property(e => e.OccurrenceLocation).HasColumnName("発生場所ID").IsRequired();
                 entity.Property(e => e.ShippingWarehouse).HasColumnName("倉庫ID").IsRequired();
@@ -100,7 +100,7 @@ namespace LogisticsTroubleManagement.Data
                 entity.Property(e => e.PhotoDataUri).HasColumnName("写真データURI").HasMaxLength(1000000);
                 entity.Property(e => e.InputDate3).HasColumnName("3次情報入力日");
                 entity.Property(e => e.RecurrencePreventionMeasures).HasColumnName("再発防止策").HasMaxLength(2000);
-                entity.Property(e => e.CreatedBy).HasColumnName("作成者").IsRequired();
+                entity.Property(e => e.CreatedBy).HasColumnName("作成者ID").IsRequired();
                 entity.Property(e => e.UpdatedBy).HasColumnName("更新者").IsRequired();
                 entity.Property(e => e.CreatedAt).HasColumnName("作成日時").IsRequired().HasDefaultValueSql("GETUTCDATE()");
                 entity.Property(e => e.UpdatedAt).HasColumnName("更新日時").IsRequired().HasDefaultValueSql("GETUTCDATE()");

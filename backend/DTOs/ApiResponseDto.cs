@@ -85,7 +85,7 @@ namespace LogisticsTroubleManagement.DTOs
         /// <summary>
         /// 総ページ数
         /// </summary>
-        public int TotalPages => (int)Math.Ceiling((double)Total / Limit);
+        public int TotalPages => Limit > 0 ? (int)Math.Ceiling((double)Total / Limit) : 0;
 
         /// <summary>
         /// 前のページがあるか

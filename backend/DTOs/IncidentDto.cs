@@ -20,10 +20,11 @@ namespace LogisticsTroubleManagement.DTOs
         public int Organization { get; set; }
 
         /// <summary>
-        /// 作成者ID
+        /// 作成者名
         /// </summary>
         [Required]
-        public int Creator { get; set; }
+        [MaxLength(100)]
+        public string Creator { get; set; } = string.Empty;
 
         /// <summary>
         /// 発生日時
@@ -113,9 +114,10 @@ namespace LogisticsTroubleManagement.DTOs
         public int? Organization { get; set; }
 
         /// <summary>
-        /// 作成者ID
+        /// 作成者名
         /// </summary>
-        public int? Creator { get; set; }
+        [MaxLength(100)]
+        public string? Creator { get; set; }
 
         /// <summary>
         /// 発生日時
@@ -240,9 +242,9 @@ namespace LogisticsTroubleManagement.DTOs
         public int Organization { get; set; }
 
         /// <summary>
-        /// 作成者ID
+        /// 作成者名
         /// </summary>
-        public int Creator { get; set; }
+        public string Creator { get; set; } = string.Empty;
 
         /// <summary>
         /// 発生日時
@@ -427,7 +429,7 @@ namespace LogisticsTroubleManagement.DTOs
         /// <summary>
         /// 総ページ数
         /// </summary>
-        public int TotalPages => (int)Math.Ceiling((double)Total / Limit);
+        public int TotalPages => Limit > 0 ? (int)Math.Ceiling((double)Total / Limit) : 0;
     }
 }
 

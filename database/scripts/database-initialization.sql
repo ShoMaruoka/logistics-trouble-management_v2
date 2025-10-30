@@ -165,7 +165,7 @@ BEGIN
         ID INT IDENTITY(1,1) PRIMARY KEY,
         作成日 DATE NOT NULL,
         部門ID INT NOT NULL,
-        作成者ID INT NOT NULL,
+        作成者名 NVARCHAR(100) NOT NULL,
         発生日時 DATETIME2 NOT NULL,
         発生場所ID INT NOT NULL,
         倉庫ID INT NOT NULL,
@@ -186,7 +186,7 @@ BEGIN
         再発防止策 NVARCHAR(MAX),
         作成日時 DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
         更新日時 DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-        作成者 INT NOT NULL,
+        作成者ID INT NOT NULL,
         更新者 INT NOT NULL
     );
     PRINT 'インシデントテーブルを作成しました。';

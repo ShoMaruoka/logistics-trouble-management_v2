@@ -44,7 +44,7 @@ const baseFormSchema = z.object({
   troubleDetailCategory: z.string().min(1, "トラブル詳細区分を選択してください。"),
   details: z.string().min(1, "内容詳細は必須です。"),
   voucherNumber: z.string().optional().refine((val) => !val || /^[0-9]{9}$/.test(val), {
-    message: "9桁の正しい伝票番号を入力してください"
+    message: "9桁の正しい伝票番号（受注番号）を入力してください"
   }),
   customerCode: z.string().optional(),
   productCode: z.string().optional().refine((val) => !val || val.length === 13, {
@@ -66,7 +66,7 @@ const formSchema = baseFormSchema.superRefine((data, ctx) => {
   const exempt = data.occurrenceLocation === '倉庫（入荷作業）' || data.occurrenceLocation === '倉庫（格納作業）';
   if (!exempt) {
     if (!data.voucherNumber) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['voucherNumber'], message: '9桁の正しい伝票番号を入力してください' });
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['voucherNumber'], message: '9桁の正しい伝票番号（受注番号）を入力してください' });
     }
     if (!data.productCode) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['productCode'], message: '13桁で入力してください' });
@@ -84,7 +84,7 @@ const info1Schema = info1Base.superRefine((data, ctx) => {
   const exempt = data.occurrenceLocation === '倉庫（入荷作業）' || data.occurrenceLocation === '倉庫（格納作業）';
   if (!exempt) {
     if (!data.voucherNumber) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['voucherNumber'], message: '9桁の正しい伝票番号を入力してください' });
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['voucherNumber'], message: '9桁の正しい伝票番号（受注番号）を入力してください' });
     }
     if (!data.productCode) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['productCode'], message: '13桁で入力してください' });
@@ -394,7 +394,7 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
                   name="voucherNumber"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>伝票番号</FormLabel>
+                      <FormLabel>伝票番号（受注番号）</FormLabel>
                       <FormControl>
                         <Input
                           value={formatVoucherDisplay(field.value || "")}

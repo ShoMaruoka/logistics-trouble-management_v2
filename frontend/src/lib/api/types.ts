@@ -58,7 +58,7 @@ export interface UserResponse {
 export interface IncidentRequest {
   creationDate: string;
   organization: number;
-  creator: number;
+  creator: string;
   occurrenceDateTime: string;
   occurrenceLocation: number;
   shippingWarehouse: number;
@@ -86,7 +86,7 @@ export interface IncidentResponse {
   id: number;
   creationDate: string;
   organization: number;
-  creator: number;
+  creator: string;
   occurrenceDateTime: string;
   occurrenceLocation: number;
   shippingWarehouse: number;

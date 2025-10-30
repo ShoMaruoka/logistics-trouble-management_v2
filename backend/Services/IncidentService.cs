@@ -98,11 +98,12 @@ namespace LogisticsTroubleManagement.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "インシデント一覧の取得中にエラーが発生しました");
+                _logger.LogError(ex, "インシデント一覧の取得中にエラーが発生しました。Page={Page}, Limit={Limit}", 
+                    searchDto.Page, searchDto.Limit);
                 return new PagedApiResponseDto<IncidentResponseDto>
                 {
                     Success = false,
-                    ErrorMessage = "インシデント一覧の取得に失敗しました"
+                    ErrorMessage = $"インシデント一覧の取得に失敗しました: {ex.Message}"
                 };
             }
         }
@@ -181,8 +182,8 @@ namespace LogisticsTroubleManagement.Services
                     incident.CreationDate = updateDto.CreationDate.Value;
                 if (updateDto.Organization.HasValue)
                     incident.Organization = updateDto.Organization.Value;
-                if (updateDto.Creator.HasValue)
-                    incident.Creator = updateDto.Creator.Value;
+                if (!string.IsNullOrEmpty(updateDto.Creator))
+                    incident.Creator = updateDto.Creator;
                 if (updateDto.OccurrenceDateTime.HasValue)
                     incident.OccurrenceDateTime = updateDto.OccurrenceDateTime.Value;
                 if (updateDto.OccurrenceLocation.HasValue)
@@ -415,7 +416,7 @@ namespace LogisticsTroubleManagement.Services
             using var writer = new StreamWriter(memoryStream, System.Text.Encoding.UTF8);
 
             // CSVヘッダー
-            writer.WriteLine("ID,作成日,所属組織,作成者,発生日時,発生場所,出荷元倉庫,運送会社名,トラブル区分,トラブル詳細区分,内容詳細,伝票番号,得意先コード,商品コード,数量,単位,2次情報入力日,発生経緯,発生原因,3次情報入力日,再発防止策,作成日時,更新日時");
+            writer.WriteLine("ID,作成日,所属組織,作成者名,発生日時,発生場所,出荷元倉庫,運送会社名,トラブル区分,トラブル詳細区分,内容詳細,伝票番号,得意先コード,商品コード,数量,単位,2次情報入力日,発生経緯,発生原因,3次情報入力日,再発防止策,作成日時,更新日時");
 
             // CSVデータ
             foreach (var incident in incidents)

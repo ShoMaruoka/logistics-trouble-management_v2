@@ -31,6 +31,30 @@ namespace LogisticsTroubleManagement.Controllers
         [HttpGet]
         public async Task<ActionResult<PagedApiResponseDto<IncidentResponseDto>>> GetIncidents([FromQuery] IncidentSearchDto searchDto)
         {
+            // デバッグログ
+            _logger.LogInformation("GetIncidents called with Page={Page}, Limit={Limit}", searchDto.Page, searchDto.Limit);
+            
+            // パラメータの検証
+            if (searchDto.Page < 1)
+            {
+                _logger.LogInformation("Page < 1, setting to 1. Original value: {Page}", searchDto.Page);
+                searchDto.Page = 1;
+            }
+            
+            if (searchDto.Limit < 1)
+            {
+                _logger.LogInformation("Limit < 1, setting to 20. Original value: {Limit}", searchDto.Limit);
+                searchDto.Limit = 20;
+            }
+            
+            if (searchDto.Limit > 100)
+            {
+                _logger.LogInformation("Limit > 100, setting to 100. Original value: {Limit}", searchDto.Limit);
+                searchDto.Limit = 100;
+            }
+            
+            _logger.LogInformation("After validation: Page={Page}, Limit={Limit}", searchDto.Page, searchDto.Limit);
+
             var result = await _incidentService.GetIncidentsAsync(searchDto);
             
             if (!result.Success)

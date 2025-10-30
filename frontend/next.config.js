@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // サブパス対応設定（開発環境では無効化）
-  // basePath: '/ltm', // /ltm/パスでアクセスするための設定
+  basePath: '/ltm', // /ltm/パスでアクセスするための設定
   
   // 本番環境での最適化設定
   output: process.env.NODE_ENV === 'production' && process.env.EXPORT_MODE === 'true' ? 'export' : 'standalone', // 静的エクスポート用
