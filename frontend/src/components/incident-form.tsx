@@ -50,7 +50,7 @@ const baseFormSchema = z.object({
   productCode: z.string().optional().refine((val) => !val || val.length === 13, {
     message: "13桁で入力してください"
   }),
-  quantity: z.coerce.number().optional(),
+  quantity: z.coerce.number().min(0, "数量は0以上で入力してください。").optional(),
   unit: z.string().optional(),
   // 2次情報
   inputDate: z.string().optional(),
@@ -482,7 +482,65 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
                 />
                 <FormField control={form.control} name="customerCode" render={({ field }) => ( <FormItem><FormLabel>得意先コード</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="productCode" render={({ field }) => ( <FormItem><FormLabel>商品CD</FormLabel><FormControl><Input {...field} maxLength={13} /></FormControl><FormMessage /></FormItem> )} />
-                <FormField control={form.control} name="quantity" render={({ field }) => ( <FormItem><FormLabel>数量</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="quantity" render={({ field }) => {
+                  // 入力値をフィルタリングして、マイナス記号や不正な文字を除去（整数のみ許可）
+                  const sanitizeInput = (value: string): string => {
+                    // 数字のみ許可（小数点は除外）
+                    return value.replace(/[^0-9]/g, "");
+                  };
+                  
+                  const displayValue = field.value === undefined || field.value === null ? "" : String(field.value);
+                  
+                  return (
+                    <FormItem>
+                      <FormLabel>数量</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          step="1"
+                          value={displayValue}
+                          onKeyDown={(e) => {
+                            // マイナス記号、小数点、指数表記などをブロック
+                            if (e.key === '-' || e.key === '+' || e.key === '.' || e.key === 'e' || e.key === 'E') {
+                              e.preventDefault();
+                            }
+                          }}
+                          onChange={(e) => {
+                            const inputValue = e.target.value;
+                            const sanitized = sanitizeInput(inputValue);
+                            
+                            if (sanitized === "") {
+                              field.onChange(undefined);
+                            } else {
+                              const numValue = parseInt(sanitized, 10);
+                              if (!isNaN(numValue) && numValue >= 0) {
+                                field.onChange(numValue);
+                              } else if (!isNaN(numValue) && numValue < 0) {
+                                field.onChange(0);
+                              }
+                            }
+                          }}
+                          onPaste={(e) => {
+                            // ペーストされた値をフィルタリング
+                            e.preventDefault();
+                            const pastedText = e.clipboardData.getData('text');
+                            const sanitized = sanitizeInput(pastedText);
+                            if (sanitized !== "") {
+                              const numValue = parseInt(sanitized, 10);
+                              if (!isNaN(numValue) && numValue >= 0) {
+                                field.onChange(numValue);
+                              }
+                            }
+                          }}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }} />
                 <FormField control={form.control} name="unit" render={({ field }) => ( <FormItem><FormLabel>単位</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={masterLoading || !isInfo1Editable}><FormControl><SelectTrigger><SelectValue placeholder={masterLoading ? "読込中..." : "選択..."} /></SelectTrigger></FormControl><SelectContent>{masterData?.units?.map((u: MasterDataItem) => <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
               </CardContent>
               <CardFooter className="flex justify-end">
