@@ -28,7 +28,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "./ui/badge";
 import { getStatusBadgeVariant, getStatusIcon } from "./incident-list";
 import { useMasterData } from "@/hooks/useApi";
-import type { MasterDataItem } from "@/lib/api/types";
+import type { MasterDataItem, TroubleDetailCategoryItem } from "@/lib/api/types";
 
 
 const baseFormSchema = z.object({
@@ -153,6 +153,43 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
   });
 
   const status = useWatch({ control: form.control, name: 'status' as any }) || incidentToEdit?.status;
+  
+  // トラブル区分の選択値を監視
+  const selectedTroubleCategory = useWatch({ control: form.control, name: 'troubleCategory' });
+  
+  // トラブル区分のnameからIDを取得
+  const getTroubleCategoryId = (categoryName: string | undefined): number | null => {
+    if (!categoryName || !masterData?.troubleCategories) return null;
+    const category = masterData.troubleCategories.find((c: MasterDataItem) => c.name === categoryName);
+    return category ? category.id : null;
+  };
+  
+  // 選択されたトラブル区分に対応するトラブル詳細区分をフィルタリング
+  const filteredTroubleDetailCategories = (() => {
+    if (!masterData?.troubleDetailCategories) return [];
+    const selectedCategoryId = getTroubleCategoryId(selectedTroubleCategory);
+    if (!selectedCategoryId) return [];
+    
+    return (masterData.troubleDetailCategories as TroubleDetailCategoryItem[]).filter(
+      (detailCategory: TroubleDetailCategoryItem) => detailCategory.troubleCategoryId === selectedCategoryId
+    );
+  })();
+  
+  // トラブル区分が変更された場合、トラブル詳細区分をクリア
+  useEffect(() => {
+    const currentTroubleDetailCategory = form.getValues('troubleDetailCategory');
+    if (currentTroubleDetailCategory && selectedTroubleCategory) {
+      const selectedCategoryId = getTroubleCategoryId(selectedTroubleCategory);
+      const currentDetailCategory = (masterData?.troubleDetailCategories as TroubleDetailCategoryItem[])?.find(
+        (dc: TroubleDetailCategoryItem) => dc.name === currentTroubleDetailCategory
+      );
+      
+      // 現在のトラブル詳細区分が選択されたトラブル区分に属していない場合、クリア
+      if (currentDetailCategory && currentDetailCategory.troubleCategoryId !== selectedCategoryId) {
+        form.setValue('troubleDetailCategory', '', { shouldValidate: false });
+      }
+    }
+  }, [selectedTroubleCategory, form, masterData]);
   
   useEffect(() => {
     if (incidentToEdit) {
@@ -387,7 +424,39 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
                 <FormField control={form.control} name="shippingWarehouse" render={({ field }) => ( <FormItem><FormLabel>出荷元倉庫</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={masterLoading || !isInfo1Editable}><FormControl><SelectTrigger><SelectValue placeholder={masterLoading ? "読込中..." : "選択..."} /></SelectTrigger></FormControl><SelectContent>{masterData?.shippingWarehouses?.map((w: MasterDataItem) => <SelectItem key={w.id} value={w.name}>{w.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="shippingCompany" render={({ field }) => ( <FormItem><FormLabel>運送会社名</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={masterLoading || !isInfo1Editable}><FormControl><SelectTrigger><SelectValue placeholder={masterLoading ? "読込中..." : "選択..."} /></SelectTrigger></FormControl><SelectContent>{masterData?.shippingCompanies?.map((c: MasterDataItem) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="troubleCategory" render={({ field }) => ( <FormItem><FormLabel>トラブル区分</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={masterLoading || !isInfo1Editable}><FormControl><SelectTrigger><SelectValue placeholder={masterLoading ? "読込中..." : "選択..."} /></SelectTrigger></FormControl><SelectContent>{masterData?.troubleCategories?.map((t: MasterDataItem) => <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
-                <FormField control={form.control} name="troubleDetailCategory" render={({ field }) => ( <FormItem><FormLabel>トラブル詳細区分</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={masterLoading || !isInfo1Editable}><FormControl><SelectTrigger><SelectValue placeholder={masterLoading ? "読込中..." : "選択..."} /></SelectTrigger></FormControl><SelectContent>{masterData?.troubleDetailCategories?.map((t: MasterDataItem) => <SelectItem key={t.id} value={t.name}>{t.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="troubleDetailCategory" render={({ field }) => {
+                  const isDisabled = masterLoading || !isInfo1Editable || !selectedTroubleCategory;
+                  const placeholder = !selectedTroubleCategory 
+                    ? "トラブル区分を先に選択してください" 
+                    : masterLoading 
+                    ? "読込中..." 
+                    : "選択...";
+                  
+                  return (
+                    <FormItem>
+                      <FormLabel>トラブル詳細区分</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        value={field.value} 
+                        disabled={isDisabled}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={placeholder} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {filteredTroubleDetailCategories.map((t: TroubleDetailCategoryItem) => (
+                            <SelectItem key={t.id} value={t.name}>
+                              {t.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }} />
                 <FormField control={form.control} name="details" render={({ field }) => ( <FormItem className="lg:col-span-3"><FormLabel>内容詳細</FormLabel><FormControl><Textarea placeholder="トラブル内容の詳細..." {...field} rows={3}/></FormControl><FormMessage /></FormItem> )} />
                 <FormField
                   control={form.control}
