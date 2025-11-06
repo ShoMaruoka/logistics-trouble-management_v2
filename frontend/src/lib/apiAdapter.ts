@@ -19,7 +19,7 @@ export function convertApiIncidentToFrontend(apiIncident: IncidentResponse, mast
     creationDate: apiIncident.creationDate.split('T')[0], // YYYY-MM-DD形式に変換
     organization: (convertIdToName(apiIncident.organization, masterData?.organizations) || convertIdToOrganizationName(apiIncident.organization)) as Incident['organization'],
     creator: apiIncident.creator, // 作成者名をそのまま使用
-    occurrenceDateTime: apiIncident.occurrenceDateTime,
+    occurrenceDateTime: apiIncident.occurrenceDateTime.includes('T') ? apiIncident.occurrenceDateTime.split('T')[0] : apiIncident.occurrenceDateTime,
     occurrenceLocation: (convertIdToName(apiIncident.occurrenceLocation, masterData?.occurrenceLocations) || convertIdToOccurrenceLocationName(apiIncident.occurrenceLocation)) as Incident['occurrenceLocation'],
     shippingWarehouse: (convertIdToName(apiIncident.shippingWarehouse, masterData?.shippingWarehouses) || convertIdToWarehouseName(apiIncident.shippingWarehouse, masterData)) as Incident['shippingWarehouse'],
     shippingCompany: (convertIdToName(apiIncident.shippingCompany, masterData?.shippingCompanies) || convertIdToShippingCompanyName(apiIncident.shippingCompany)) as Incident['shippingCompany'],
@@ -57,7 +57,7 @@ export function convertFrontendIncidentToApiRequest(
     creationDate: frontendIncident.creationDate!,
     organization: convertNameToId(frontendIncident.organization!, masterData?.organizations) || convertOrganizationNameToId(frontendIncident.organization!, masterData),
     creator: frontendIncident.creator!, // フォームで入力された作成者名をそのまま使用
-    occurrenceDateTime: frontendIncident.occurrenceDateTime!,
+    occurrenceDateTime: frontendIncident.occurrenceDateTime!.includes('T') ? frontendIncident.occurrenceDateTime! : `${frontendIncident.occurrenceDateTime!}T00:00:00`,
     occurrenceLocation: convertNameToId(frontendIncident.occurrenceLocation!, masterData?.occurrenceLocations) || convertOccurrenceLocationNameToId(frontendIncident.occurrenceLocation!, masterData),
     shippingWarehouse: convertNameToId(frontendIncident.shippingWarehouse!, masterData?.shippingWarehouses) || convertWarehouseNameToId(frontendIncident.shippingWarehouse!, masterData),
     shippingCompany: convertNameToId(frontendIncident.shippingCompany!, masterData?.shippingCompanies) || convertShippingCompanyNameToId(frontendIncident.shippingCompany!, masterData),

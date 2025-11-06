@@ -83,7 +83,7 @@ const SortableHeader = ({
 export function IncidentList({ incidents, requestSort, sortConfig, onEdit }: IncidentListProps) {
   const headers: { label: string; key: keyof Incident, className?: string }[] = [
     { label: "ステータス", key: "status" },
-    { label: "発生日時", key: "occurrenceDateTime" },
+    { label: "発生日", key: "occurrenceDateTime" },
     { label: "出荷元倉庫", key: "shippingWarehouse" },
     { label: "発生場所", key: "occurrenceLocation" },
     { label: "トラブル区分", key: "troubleCategory" },
@@ -120,7 +120,7 @@ export function IncidentList({ incidents, requestSort, sortConfig, onEdit }: Inc
                       {incident.status}
                     </Badge>
                   </TableCell>
-                  <TableCell>{incident.occurrenceDateTime.replace('T', ' ')}</TableCell>
+                  <TableCell>{incident.occurrenceDateTime.includes('T') ? incident.occurrenceDateTime.split('T')[0] : incident.occurrenceDateTime}</TableCell>
                   <TableCell>{incident.shippingWarehouse}</TableCell>
                   <TableCell>{incident.occurrenceLocation}</TableCell>
                   <TableCell>{incident.troubleCategory}</TableCell>

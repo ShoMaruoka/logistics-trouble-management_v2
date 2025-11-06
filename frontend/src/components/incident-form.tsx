@@ -36,7 +36,7 @@ const baseFormSchema = z.object({
   creationDate: z.string().min(1, "作成日は必須です。"),
   organization: z.string().min(1, "所属組織を選択してください。"),
   creator: z.string().min(1, "作成者は必須です。"),
-  occurrenceDateTime: z.string().min(1, "発生日時は必須です。"),
+  occurrenceDateTime: z.string().min(1, "発生日は必須です。"),
   occurrenceLocation: z.string().min(1, "発生場所を選択してください。"),
   shippingWarehouse: z.string().min(1, "出荷元倉庫を選択してください。"),
   shippingCompany: z.string().min(1, "運送会社名を選択してください。"),
@@ -131,7 +131,7 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
       creationDate: incidentToEdit?.creationDate || format(new Date(), 'yyyy-MM-dd'),
       organization: incidentToEdit?.organization || "",
       creator: incidentToEdit?.creator || "",
-      occurrenceDateTime: incidentToEdit?.occurrenceDateTime ? format(new Date(incidentToEdit.occurrenceDateTime), "yyyy-MM-dd'T'HH:mm") : format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+      occurrenceDateTime: incidentToEdit?.occurrenceDateTime ? (incidentToEdit.occurrenceDateTime.includes('T') ? incidentToEdit.occurrenceDateTime.split('T')[0] : incidentToEdit.occurrenceDateTime) : format(new Date(), 'yyyy-MM-dd'),
       occurrenceLocation: incidentToEdit?.occurrenceLocation || "",
       shippingWarehouse: incidentToEdit?.shippingWarehouse || "",
       shippingCompany: incidentToEdit?.shippingCompany || "",
@@ -161,7 +161,7 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
         creationDate: incidentToEdit.creationDate || format(new Date(), 'yyyy-MM-dd'),
         organization: incidentToEdit.organization || "",
         creator: incidentToEdit.creator || "",
-        occurrenceDateTime: incidentToEdit.occurrenceDateTime ? format(new Date(incidentToEdit.occurrenceDateTime), "yyyy-MM-dd'T'HH:mm") : format(new Date(), "yyyy-MM-dd'T'HH:mm"),
+        occurrenceDateTime: incidentToEdit.occurrenceDateTime ? (incidentToEdit.occurrenceDateTime.includes('T') ? incidentToEdit.occurrenceDateTime.split('T')[0] : incidentToEdit.occurrenceDateTime) : format(new Date(), 'yyyy-MM-dd'),
         occurrenceLocation: incidentToEdit.occurrenceLocation || "",
         shippingWarehouse: incidentToEdit.shippingWarehouse || "",
         shippingCompany: incidentToEdit.shippingCompany || "",
@@ -382,7 +382,7 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
                 <DateField name="creationDate" label="作成日" />
                 <FormField control={form.control} name="organization" render={({ field }) => ( <FormItem><FormLabel>所属組織</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={masterLoading || !isInfo1Editable}><FormControl><SelectTrigger><SelectValue placeholder={masterLoading ? "読込中..." : "選択..."} /></SelectTrigger></FormControl><SelectContent>{masterData?.organizations?.map((o: MasterDataItem) => <SelectItem key={o.id} value={o.name}>{o.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="creator" render={({ field }) => ( <FormItem><FormLabel>作成者</FormLabel><FormControl><Input placeholder="氏名" {...field} /></FormControl><FormMessage /></FormItem> )} />
-                <FormField control={form.control} name="occurrenceDateTime" render={({ field }) => ( <FormItem><FormLabel>発生日時</FormLabel><FormControl><Input type="datetime-local" {...field} /></FormControl><FormMessage /></FormItem> )} />
+                <DateField name="occurrenceDateTime" label="発生日" />
                 <FormField control={form.control} name="occurrenceLocation" render={({ field }) => ( <FormItem><FormLabel>発生場所</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={masterLoading || !isInfo1Editable}><FormControl><SelectTrigger><SelectValue placeholder={masterLoading ? "読込中..." : "選択..."} /></SelectTrigger></FormControl><SelectContent>{masterData?.occurrenceLocations?.map((o: MasterDataItem) => <SelectItem key={o.id} value={o.name}>{o.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="shippingWarehouse" render={({ field }) => ( <FormItem><FormLabel>出荷元倉庫</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={masterLoading || !isInfo1Editable}><FormControl><SelectTrigger><SelectValue placeholder={masterLoading ? "読込中..." : "選択..."} /></SelectTrigger></FormControl><SelectContent>{masterData?.shippingWarehouses?.map((w: MasterDataItem) => <SelectItem key={w.id} value={w.name}>{w.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="shippingCompany" render={({ field }) => ( <FormItem><FormLabel>運送会社名</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={masterLoading || !isInfo1Editable}><FormControl><SelectTrigger><SelectValue placeholder={masterLoading ? "読込中..." : "選択..."} /></SelectTrigger></FormControl><SelectContent>{masterData?.shippingCompanies?.map((c: MasterDataItem) => <SelectItem key={c.id} value={c.name}>{c.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
