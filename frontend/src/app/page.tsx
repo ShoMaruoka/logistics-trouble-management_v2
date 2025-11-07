@@ -17,7 +17,6 @@ import {
 import { IncidentForm } from "@/components/incident-form";
 import { IncidentList } from "@/components/incident-list";
 import type { Incident } from "@/lib/types";
-import { Logo } from "@/components/icons";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -39,7 +38,7 @@ import { convertApiIncidentToFrontend, convertFrontendIncidentToApiUpdateRequest
 import { LoginForm } from "@/components/login-form";
 import { MasterDataManagement } from "@/components/master-data-management";
 import { isSystemAdmin } from "@/lib/auth";
-// import { HeaderNavigation } from "@/components/HeaderNavigation";
+import { HeaderNavigation } from "@/components/HeaderNavigation";
 
 
 const barChartConfig = troubleDetailCategories.reduce((acc, category, index) => {
@@ -534,25 +533,14 @@ export default function Home() {
 
   return (
     <div className="min-h-screen w-full bg-background">
-      <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur-sm">
-        <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
-          <div className="flex items-center gap-3">
-            <Logo className="h-8 w-8 text-primary" />
-            <h1 className="text-xl font-bold tracking-tighter text-foreground">
-              物流品質トラブル管理
-            </h1>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">
-              こんにちは、{user?.fullName || 'ユーザー'}さん
-            </span>
-            <Button onClick={handleAddNewIncident} disabled={incidentsLoading}>
-                <PlusCircle />
-                物流品質トラブル登録
-            </Button>
-          </div>
-        </div>
-      </header>
+      <HeaderNavigation 
+        additionalButtons={
+          <Button onClick={handleAddNewIncident} disabled={incidentsLoading}>
+              <PlusCircle />
+              物流品質トラブル登録
+          </Button>
+        }
+      />
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-4xl">
