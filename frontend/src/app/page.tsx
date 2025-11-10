@@ -198,15 +198,31 @@ export default function Home() {
         // 作成日は更新しない（既存の値を保持）
         const { creationDate, ...dataWithoutCreationDate } = data;
         
+        // 2次情報や3次情報登録時には、1次情報のフィールドが含まれていないため、
+        // 既存のインシデントから必要な1次情報のフィールドを取得して含める
         const updateData = {
-          ...dataWithoutCreationDate,
-          // 入力日は手動で設定される（自動設定しない）
+          // 1次情報のフィールド（更新されない場合は既存の値を保持）
+          occurrenceDateTime: data.occurrenceDateTime || editingIncident.occurrenceDateTime,
+          organization: data.organization || editingIncident.organization,
+          creator: data.creator || editingIncident.creator,
+          occurrenceLocation: data.occurrenceLocation || editingIncident.occurrenceLocation,
+          shippingWarehouse: data.shippingWarehouse || editingIncident.shippingWarehouse,
+          shippingCompany: data.shippingCompany || editingIncident.shippingCompany,
+          troubleCategory: data.troubleCategory || editingIncident.troubleCategory,
+          troubleDetailCategory: data.troubleDetailCategory || editingIncident.troubleDetailCategory,
+          details: data.details || editingIncident.details,
+          voucherNumber: data.voucherNumber !== undefined ? data.voucherNumber : editingIncident.voucherNumber,
+          customerCode: data.customerCode !== undefined ? data.customerCode : editingIncident.customerCode,
+          productCode: data.productCode !== undefined ? data.productCode : editingIncident.productCode,
+          quantity: data.quantity !== undefined ? data.quantity : editingIncident.quantity,
+          unit: data.unit !== undefined ? data.unit : editingIncident.unit,
+          // 2次情報・3次情報のフィールド
           inputDate: data.inputDate, // フォームで入力された値をそのまま使用
-          processDescription: infoLevel >= 2 ? data.processDescription : undefined,
-          cause: infoLevel >= 2 ? data.cause : undefined,
-          photoDataUri: infoLevel >= 2 ? data.photoDataUri : undefined,
+          processDescription: infoLevel >= 2 ? data.processDescription : editingIncident.processDescription,
+          cause: infoLevel >= 2 ? data.cause : editingIncident.cause,
+          photoDataUri: infoLevel >= 2 ? data.photoDataUri : editingIncident.photoDataUri,
           inputDate3: data.inputDate3, // フォームで入力された値をそのまま使用
-          recurrencePreventionMeasures: infoLevel >= 3 ? data.recurrencePreventionMeasures : undefined,
+          recurrencePreventionMeasures: infoLevel >= 3 ? data.recurrencePreventionMeasures : editingIncident.recurrencePreventionMeasures,
         };
 
         // フロントエンド型をAPI型に変換

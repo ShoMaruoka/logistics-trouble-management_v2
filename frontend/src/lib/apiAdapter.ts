@@ -53,11 +53,21 @@ export function convertFrontendIncidentToApiRequest(
   frontendIncident: Partial<Incident>,
   masterData: any
 ): IncidentRequest {
+  // occurrenceDateTimeがundefinedの場合の処理を追加
+  const occurrenceDateTime = frontendIncident.occurrenceDateTime;
+  const formattedOccurrenceDateTime = occurrenceDateTime 
+    ? (occurrenceDateTime.includes('T') ? occurrenceDateTime : `${occurrenceDateTime}T00:00:00`)
+    : undefined;
+  
+  if (!formattedOccurrenceDateTime) {
+    throw new Error('occurrenceDateTime is required');
+  }
+  
   return {
     creationDate: frontendIncident.creationDate!,
     organization: convertNameToId(frontendIncident.organization!, masterData?.organizations) || convertOrganizationNameToId(frontendIncident.organization!, masterData),
     creator: frontendIncident.creator!, // フォームで入力された作成者名をそのまま使用
-    occurrenceDateTime: frontendIncident.occurrenceDateTime!.includes('T') ? frontendIncident.occurrenceDateTime! : `${frontendIncident.occurrenceDateTime!}T00:00:00`,
+    occurrenceDateTime: formattedOccurrenceDateTime,
     occurrenceLocation: convertNameToId(frontendIncident.occurrenceLocation!, masterData?.occurrenceLocations) || convertOccurrenceLocationNameToId(frontendIncident.occurrenceLocation!, masterData),
     shippingWarehouse: convertNameToId(frontendIncident.shippingWarehouse!, masterData?.shippingWarehouses) || convertWarehouseNameToId(frontendIncident.shippingWarehouse!, masterData),
     shippingCompany: convertNameToId(frontendIncident.shippingCompany!, masterData?.shippingCompanies) || convertShippingCompanyNameToId(frontendIncident.shippingCompany!, masterData),
