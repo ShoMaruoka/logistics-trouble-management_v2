@@ -339,11 +339,11 @@ namespace LogisticsTroubleManagement.Services
                 // 基本統計
                 stats.TotalIncidents = await _context.Incidents.CountAsync();
 
-                // 日別発生件数（過去30日）
+                // 日別発生件数（過去30日）- 発生日時（OccurrenceDateTime）を基準に集計
                 var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
                 stats.DailyIncidentCounts = await _context.Incidents
-                    .Where(i => i.CreationDate >= thirtyDaysAgo)
-                    .GroupBy(i => i.CreationDate.Date)
+                    .Where(i => i.OccurrenceDateTime >= thirtyDaysAgo)
+                    .GroupBy(i => i.OccurrenceDateTime.Date)
                     .Select(g => new DailyIncidentCountDto
                     {
                         Date = g.Key,

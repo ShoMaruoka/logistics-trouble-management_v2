@@ -31,7 +31,7 @@ namespace LogisticsTroubleManagement.DTOs
         public int ThirdInfoDelayedCount { get; set; }
 
         /// <summary>
-        /// 日別発生件数（過去30日）
+        /// 日別発生件数（過去30日）- 発生日時（OccurrenceDateTime）を基準に集計
         /// </summary>
         public List<DailyIncidentCountDto> DailyIncidentCounts { get; set; } = new();
 

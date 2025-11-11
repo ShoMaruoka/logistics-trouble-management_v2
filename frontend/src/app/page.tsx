@@ -330,6 +330,7 @@ export default function Home() {
     delay2Count,
     delay3Count,
     dailyData,
+    actualCategories,
     troubleCategoryData,
     troubleDetailCategoryData,
     shippingCompanyData,
@@ -344,6 +345,13 @@ export default function Home() {
     const d2 = data.filter(i => i.status === '2次情報調査遅延' || i.status === '2次情報遅延').length;
     const d3 = data.filter(i => i.status === '3次情報調査遅延' || i.status === '3次情報遅延').length;
 
+    // 実際のデータから使用されているトラブル詳細区分の一意の値を取得
+    const actualCategories: string[] = Array.from(new Set(
+        data
+            .map(i => i.troubleDetailCategory)
+            .filter((cat): cat is Incident['troubleDetailCategory'] => !!cat)
+    )) as string[];
+
     let daily;
     if (selectedMonth === 'all') {
         const maxDay = 31;
@@ -351,7 +359,7 @@ export default function Home() {
 
         daily = daysArray.map(day => {
             const incidentsOnDay = data.filter(i => getDate(new Date(i.occurrenceDateTime)) === day);
-            const counts = troubleDetailCategories.reduce((acc, category) => {
+            const counts = actualCategories.reduce((acc, category) => {
                 acc[category] = incidentsOnDay.filter(i => i.troubleDetailCategory === category).length;
                 return acc;
             }, {} as Record<string, number>);
@@ -366,10 +374,10 @@ export default function Home() {
         daily = daysInInterval.map(day => {
             const dayStr = format(day, 'd');
             const incidentsOnDay = data.filter(i => isSameDay(new Date(i.occurrenceDateTime), day));
-            const counts = troubleDetailCategories.reduce((acc, category) => {
+            const counts = actualCategories.reduce((acc, category) => {
                 acc[category] = incidentsOnDay.filter(i => i.troubleDetailCategory === category).length;
                 return acc;
-            }, {} as Record<typeof troubleDetailCategories[number], number>);
+            }, {} as Record<string, number>);
             return { date: dayStr, ...counts };
         });
     }
@@ -397,6 +405,7 @@ export default function Home() {
       delay2Count: d2,
       delay3Count: d3,
       dailyData: daily,
+      actualCategories: actualCategories, // グラフ表示用にカテゴリリストを返す
       troubleCategoryData: formatForPieChart(aggregateByCategory('troubleCategory')),
       troubleDetailCategoryData: formatForPieChart(aggregateByCategory('troubleDetailCategory')),
       shippingCompanyData: formatForPieChart(aggregateByCategory('shippingCompany')),
@@ -405,7 +414,17 @@ export default function Home() {
     };
 
   }, [filteredIncidents, selectedYear, selectedMonth]);
-  
+
+  // グラフ設定を動的に生成
+  const dynamicBarChartConfig = React.useMemo(() => {
+    if (!actualCategories || actualCategories.length === 0) {
+      return barChartConfig;
+    }
+    return actualCategories.reduce((acc, category, index) => {
+      acc[category] = { label: category, color: `hsl(var(--chart-${(index % 5) + 1}))` };
+      return acc;
+    }, {} as ChartConfig);
+  }, [actualCategories]);
 
   const filteredIncidentsForTable = React.useMemo(() => {
     const sourceData = filteredIncidents;
@@ -658,12 +677,12 @@ export default function Home() {
                             <CardTitle>日別発生件数</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <ChartContainer config={barChartConfig} className="w-full h-[350px]">
+                            <ChartContainer config={dynamicBarChartConfig} className="w-full h-[350px]">
                                 <BarChart accessibilityLayer data={dailyData} margin={{ top: 20, right: 10, bottom: 0, left: 0 }}>
                                     <XAxis dataKey="date" tickLine={false} axisLine={false} tickMargin={8} stroke="hsl(var(--muted-foreground))" fontSize={12} />
                                     <YAxis tickLine={false} axisLine={false} width={30} tickFormatter={(value) => `${value}`} allowDecimals={false} stroke="hsl(var(--muted-foreground))" fontSize={12}/>
                                     <ChartTooltip content={<ChartTooltipContent />} />
-                                    {troubleDetailCategories.map((category) => (
+                                    {(actualCategories && actualCategories.length > 0 ? actualCategories : troubleDetailCategories).map((category) => (
                                         <Bar key={category} dataKey={category} stackId="a" fill={`var(--color-${category})`} radius={0} barSize={12} />
                                     ))}
                                 </BarChart>
