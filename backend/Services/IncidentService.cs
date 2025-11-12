@@ -50,12 +50,12 @@ namespace LogisticsTroubleManagement.Services
 
                 if (searchDto.Year.HasValue)
                 {
-                    query = query.Where(i => i.CreationDate.Year == searchDto.Year.Value);
+                    query = query.Where(i => i.OccurrenceDateTime.Year == searchDto.Year.Value);
                 }
 
                 if (searchDto.Month.HasValue)
                 {
-                    query = query.Where(i => i.CreationDate.Month == searchDto.Month.Value);
+                    query = query.Where(i => i.OccurrenceDateTime.Month == searchDto.Month.Value);
                 }
 
                 if (searchDto.Warehouse.HasValue)
@@ -74,7 +74,7 @@ namespace LogisticsTroubleManagement.Services
 
                 // ページネーションの適用
                 var incidents = await query
-                    .OrderByDescending(i => i.CreationDate)
+                    .OrderByDescending(i => i.OccurrenceDateTime)
                     .Skip((searchDto.Page - 1) * searchDto.Limit)
                     .Take(searchDto.Limit)
                     .ToListAsync();
@@ -294,12 +294,12 @@ namespace LogisticsTroubleManagement.Services
 
                 if (searchDto.Year.HasValue)
                 {
-                    query = query.Where(i => i.CreationDate.Year == searchDto.Year.Value);
+                    query = query.Where(i => i.OccurrenceDateTime.Year == searchDto.Year.Value);
                 }
 
                 if (searchDto.Month.HasValue)
                 {
-                    query = query.Where(i => i.CreationDate.Month == searchDto.Month.Value);
+                    query = query.Where(i => i.OccurrenceDateTime.Month == searchDto.Month.Value);
                 }
 
                 if (searchDto.Warehouse.HasValue)
@@ -314,7 +314,7 @@ namespace LogisticsTroubleManagement.Services
                 }
 
                 var incidents = await query
-                    .OrderByDescending(i => i.CreationDate)
+                    .OrderByDescending(i => i.OccurrenceDateTime)
                     .ToListAsync();
 
                 var csvData = GenerateCsvData(incidents);
