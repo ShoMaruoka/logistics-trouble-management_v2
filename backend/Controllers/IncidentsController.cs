@@ -101,7 +101,8 @@ namespace LogisticsTroubleManagement.Controllers
             }
 
             var userId = GetCurrentUserId();
-            var result = await _incidentService.CreateIncidentAsync(createDto, userId);
+            var userRoleId = GetCurrentUserRoleId();
+            var result = await _incidentService.CreateIncidentAsync(createDto, userId, userRoleId);
             
             if (!result.Success)
             {
@@ -126,7 +127,8 @@ namespace LogisticsTroubleManagement.Controllers
             }
 
             var userId = GetCurrentUserId();
-            var result = await _incidentService.UpdateIncidentAsync(id, updateDto, userId);
+            var userRoleId = GetCurrentUserRoleId();
+            var result = await _incidentService.UpdateIncidentAsync(id, updateDto, userId, userRoleId);
             
             if (!result.Success)
             {
@@ -212,6 +214,20 @@ namespace LogisticsTroubleManagement.Controllers
                 return userId;
             }
             throw new UnauthorizedAccessException("ユーザーIDを取得できませんでした");
+        }
+
+        /// <summary>
+        /// 現在のユーザーロールIDの取得
+        /// </summary>
+        /// <returns>ユーザーロールID</returns>
+        private int GetCurrentUserRoleId()
+        {
+            var userRoleIdClaim = User.FindFirst("user_role_id");
+            if (userRoleIdClaim != null && int.TryParse(userRoleIdClaim.Value, out var userRoleId))
+            {
+                return userRoleId;
+            }
+            throw new UnauthorizedAccessException("ユーザーロールIDを取得できませんでした");
         }
     }
 }

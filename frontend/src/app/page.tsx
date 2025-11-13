@@ -37,7 +37,7 @@ import { incidentsApi } from "@/lib/api";
 import { convertApiIncidentToFrontend, convertFrontendIncidentToApiUpdateRequest, convertFrontendIncidentToApiCreateRequest } from "@/lib/apiAdapter";
 import { LoginForm } from "@/components/login-form";
 import { MasterDataManagement } from "@/components/master-data-management";
-import { isSystemAdmin } from "@/lib/auth";
+import { isSystemAdmin, canCreateFirstInfo } from "@/lib/auth";
 import { HeaderNavigation } from "@/components/HeaderNavigation";
 
 
@@ -195,35 +195,31 @@ export default function Home() {
       
       if (editingIncident && editingIncident.id) {
         // 既存インシデントの更新
-        // 作成日は更新しない（既存の値を保持）
-        const { creationDate, ...dataWithoutCreationDate } = data;
+        let updateData: Partial<Omit<Incident, 'id'>>;
         
-        // 2次情報や3次情報登録時には、1次情報のフィールドが含まれていないため、
-        // 既存のインシデントから必要な1次情報のフィールドを取得して含める
-        const updateData = {
-          // 1次情報のフィールド（更新されない場合は既存の値を保持）
-          occurrenceDateTime: data.occurrenceDateTime || editingIncident.occurrenceDateTime,
-          organization: data.organization || editingIncident.organization,
-          creator: data.creator || editingIncident.creator,
-          occurrenceLocation: data.occurrenceLocation || editingIncident.occurrenceLocation,
-          shippingWarehouse: data.shippingWarehouse || editingIncident.shippingWarehouse,
-          shippingCompany: data.shippingCompany || editingIncident.shippingCompany,
-          troubleCategory: data.troubleCategory || editingIncident.troubleCategory,
-          troubleDetailCategory: data.troubleDetailCategory || editingIncident.troubleDetailCategory,
-          details: data.details || editingIncident.details,
-          voucherNumber: data.voucherNumber !== undefined ? data.voucherNumber : editingIncident.voucherNumber,
-          customerCode: data.customerCode !== undefined ? data.customerCode : editingIncident.customerCode,
-          productCode: data.productCode !== undefined ? data.productCode : editingIncident.productCode,
-          quantity: data.quantity !== undefined ? data.quantity : editingIncident.quantity,
-          unit: data.unit !== undefined ? data.unit : editingIncident.unit,
-          // 2次情報・3次情報のフィールド
-          inputDate: data.inputDate, // フォームで入力された値をそのまま使用
-          processDescription: infoLevel >= 2 ? data.processDescription : editingIncident.processDescription,
-          cause: infoLevel >= 2 ? data.cause : editingIncident.cause,
-          photoDataUri: infoLevel >= 2 ? data.photoDataUri : editingIncident.photoDataUri,
-          inputDate3: data.inputDate3, // フォームで入力された値をそのまま使用
-          recurrencePreventionMeasures: infoLevel >= 3 ? data.recurrencePreventionMeasures : editingIncident.recurrencePreventionMeasures,
-        };
+        if (infoLevel === 1) {
+          // 1次情報の更新時は、1次情報のフィールドのみ送信
+          updateData = {
+            ...data,
+            // 2次情報・3次情報は送信しない（既存の値を保持）
+          };
+        } else if (infoLevel === 2) {
+          // 2次情報の更新時は、2次情報のフィールドのみ送信
+          // 1次情報のフィールドは送信しない（権限チェックを回避）
+          updateData = {
+            inputDate: data.inputDate,
+            processDescription: data.processDescription,
+            cause: data.cause,
+            photoDataUri: data.photoDataUri,
+          };
+        } else {
+          // 3次情報の更新時は、3次情報のフィールドのみ送信
+          // 1次情報・2次情報のフィールドは送信しない（権限チェックを回避）
+          updateData = {
+            inputDate3: data.inputDate3,
+            recurrencePreventionMeasures: data.recurrencePreventionMeasures,
+          };
+        }
 
         // フロントエンド型をAPI型に変換
         const apiUpdateData = convertFrontendIncidentToApiUpdateRequest(updateData, masterData);
@@ -570,10 +566,12 @@ export default function Home() {
     <div className="min-h-screen w-full bg-background">
       <HeaderNavigation 
         additionalButtons={
-          <Button onClick={handleAddNewIncident} disabled={incidentsLoading}>
-              <PlusCircle />
-              物流品質トラブル登録
-          </Button>
+          canCreateFirstInfo(user?.userRoleId) && (
+            <Button onClick={handleAddNewIncident} disabled={incidentsLoading}>
+                <PlusCircle />
+                物流品質トラブル登録
+            </Button>
+          )
         }
       />
 

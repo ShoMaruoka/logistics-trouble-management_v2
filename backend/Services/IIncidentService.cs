@@ -27,8 +27,9 @@ namespace LogisticsTroubleManagement.Services
         /// </summary>
         /// <param name="createDto">作成DTO</param>
         /// <param name="userId">作成者ID</param>
+        /// <param name="userRoleId">ユーザーロールID</param>
         /// <returns>作成されたインシデント</returns>
-        Task<ApiResponseDto<IncidentResponseDto>> CreateIncidentAsync(CreateIncidentDto createDto, int userId);
+        Task<ApiResponseDto<IncidentResponseDto>> CreateIncidentAsync(CreateIncidentDto createDto, int userId, int userRoleId);
 
         /// <summary>
         /// インシデントの更新
@@ -36,8 +37,9 @@ namespace LogisticsTroubleManagement.Services
         /// <param name="id">インシデントID</param>
         /// <param name="updateDto">更新DTO</param>
         /// <param name="userId">更新者ID</param>
+        /// <param name="userRoleId">ユーザーロールID</param>
         /// <returns>更新されたインシデント</returns>
-        Task<ApiResponseDto<IncidentResponseDto>> UpdateIncidentAsync(int id, UpdateIncidentDto updateDto, int userId);
+        Task<ApiResponseDto<IncidentResponseDto>> UpdateIncidentAsync(int id, UpdateIncidentDto updateDto, int userId, int userRoleId);
 
         /// <summary>
         /// インシデントの削除

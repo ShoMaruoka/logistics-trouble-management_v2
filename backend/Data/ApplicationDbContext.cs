@@ -333,9 +333,9 @@ namespace LogisticsTroubleManagement.Data
             // ユーザーロールの初期データ
             modelBuilder.Entity<UserRole>().HasData(
                 new UserRole { Id = 1, RoleName = "システム管理者", CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
-                new UserRole { Id = 2, RoleName = "部門管理者", CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
-                new UserRole { Id = 3, RoleName = "倉庫管理者", CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
-                new UserRole { Id = 4, RoleName = "一般ユーザー", CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc) }
+                new UserRole { Id = 2, RoleName = "事務管理者", CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+                new UserRole { Id = 3, RoleName = "一般事務", CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc) },
+                new UserRole { Id = 4, RoleName = "3PL", CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc) }
             );
 
             // 管理者ユーザーの作成

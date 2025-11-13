@@ -89,20 +89,107 @@ export function convertFrontendIncidentToApiUpdateRequest(
   frontendIncident: Partial<Incident>,
   masterData: any
 ): IncidentUpdateRequest {
-  const baseRequest = convertFrontendIncidentToApiRequest(frontendIncident, masterData);
+  // 更新リクエストはすべてのフィールドがオプショナル
+  const updateRequest: IncidentUpdateRequest = {};
   
-  // 更新時はcreationDateを除外
-  const { creationDate, ...baseRequestWithoutCreationDate } = baseRequest;
+  // 1次情報のフィールドが存在する場合のみ含める
+  if (frontendIncident.creationDate) {
+    updateRequest.creationDate = frontendIncident.creationDate;
+  }
   
-  return {
-    ...baseRequestWithoutCreationDate,
-    inputDate: frontendIncident.inputDate,
-    processDescription: frontendIncident.processDescription,
-    cause: frontendIncident.cause,
-    photoDataUri: frontendIncident.photoDataUri,
-    inputDate3: frontendIncident.inputDate3,
-    recurrencePreventionMeasures: frontendIncident.recurrencePreventionMeasures,
-  };
+  if (frontendIncident.occurrenceDateTime) {
+    const occurrenceDateTime = frontendIncident.occurrenceDateTime;
+    const formattedOccurrenceDateTime = occurrenceDateTime.includes('T') 
+      ? occurrenceDateTime 
+      : `${occurrenceDateTime}T00:00:00`;
+    updateRequest.occurrenceDateTime = formattedOccurrenceDateTime;
+  }
+  
+  if (frontendIncident.organization) {
+    updateRequest.organization = convertNameToId(frontendIncident.organization, masterData?.organizations) 
+      || convertOrganizationNameToId(frontendIncident.organization, masterData);
+  }
+  
+  if (frontendIncident.creator) {
+    updateRequest.creator = frontendIncident.creator;
+  }
+  
+  if (frontendIncident.occurrenceLocation) {
+    updateRequest.occurrenceLocation = convertNameToId(frontendIncident.occurrenceLocation, masterData?.occurrenceLocations) 
+      || convertOccurrenceLocationNameToId(frontendIncident.occurrenceLocation, masterData);
+  }
+  
+  if (frontendIncident.shippingWarehouse) {
+    updateRequest.shippingWarehouse = convertNameToId(frontendIncident.shippingWarehouse, masterData?.shippingWarehouses) 
+      || convertWarehouseNameToId(frontendIncident.shippingWarehouse, masterData);
+  }
+  
+  if (frontendIncident.shippingCompany) {
+    updateRequest.shippingCompany = convertNameToId(frontendIncident.shippingCompany, masterData?.shippingCompanies) 
+      || convertShippingCompanyNameToId(frontendIncident.shippingCompany, masterData);
+  }
+  
+  if (frontendIncident.troubleCategory) {
+    updateRequest.troubleCategory = convertNameToId(frontendIncident.troubleCategory, masterData?.troubleCategories) 
+      || convertTroubleCategoryNameToId(frontendIncident.troubleCategory, masterData);
+  }
+  
+  if (frontendIncident.troubleDetailCategory) {
+    updateRequest.troubleDetailCategory = convertNameToId(frontendIncident.troubleDetailCategory, masterData?.troubleDetailCategories) 
+      || convertTroubleDetailCategoryNameToId(frontendIncident.troubleDetailCategory, masterData);
+  }
+  
+  if (frontendIncident.details) {
+    updateRequest.details = frontendIncident.details;
+  }
+  
+  if (frontendIncident.voucherNumber !== undefined) {
+    updateRequest.voucherNumber = frontendIncident.voucherNumber;
+  }
+  
+  if (frontendIncident.customerCode !== undefined) {
+    updateRequest.customerCode = frontendIncident.customerCode;
+  }
+  
+  if (frontendIncident.productCode !== undefined) {
+    updateRequest.productCode = frontendIncident.productCode;
+  }
+  
+  if (frontendIncident.quantity !== undefined) {
+    updateRequest.quantity = frontendIncident.quantity;
+  }
+  
+  if (frontendIncident.unit) {
+    updateRequest.unit = convertNameToId(frontendIncident.unit, masterData?.units) 
+      || convertUnitNameToId(frontendIncident.unit, masterData);
+  }
+  
+  // 2次情報・3次情報のフィールド
+  if (frontendIncident.inputDate !== undefined) {
+    updateRequest.inputDate = frontendIncident.inputDate;
+  }
+  
+  if (frontendIncident.processDescription !== undefined) {
+    updateRequest.processDescription = frontendIncident.processDescription;
+  }
+  
+  if (frontendIncident.cause !== undefined) {
+    updateRequest.cause = frontendIncident.cause;
+  }
+  
+  if (frontendIncident.photoDataUri !== undefined) {
+    updateRequest.photoDataUri = frontendIncident.photoDataUri;
+  }
+  
+  if (frontendIncident.inputDate3 !== undefined) {
+    updateRequest.inputDate3 = frontendIncident.inputDate3;
+  }
+  
+  if (frontendIncident.recurrencePreventionMeasures !== undefined) {
+    updateRequest.recurrencePreventionMeasures = frontendIncident.recurrencePreventionMeasures;
+  }
+  
+  return updateRequest;
 }
 
 /**

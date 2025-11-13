@@ -27,8 +27,16 @@ import { Calendar } from "./ui/calendar";
 import { cn } from "@/lib/utils";
 import { Badge } from "./ui/badge";
 import { getStatusBadgeVariant, getStatusIcon } from "./incident-list";
-import { useMasterData } from "@/hooks/useApi";
+import { useMasterData, useAuth } from "@/hooks/useApi";
 import type { MasterDataItem, TroubleDetailCategoryItem } from "@/lib/api/types";
+import { 
+  canCreateFirstInfo,
+  canUpdateFirstInfo, 
+  canCreateSecondInfo, 
+  canUpdateSecondInfo, 
+  canCreateThirdInfo, 
+  canUpdateThirdInfo 
+} from "@/lib/auth";
 
 
 const baseFormSchema = z.object({
@@ -116,6 +124,7 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadedFile, setUploadedFile] = useState<{ name: string; type: string; size: number } | null>(null);
   const { masterData, loading: masterLoading, error: masterError } = useMasterData();
+  const { user } = useAuth();
 
   // 表示用: 8桁目と9桁目の間にハイフンを入れて見せる
   const formatVoucherDisplay = (digits: string): string => {
@@ -393,9 +402,21 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
     />
   );
   
-  const isInfo1Editable = !status || status === '2次情報調査中' || status === '2次情報調査遅延' || status === '2次情報遅延';
-  const isInfo2Editable = status === '2次情報調査中' || status === '2次情報調査遅延' || status === '2次情報遅延' || status === '3次情報調査中' || status === '3次情報調査遅延' || status === '3次情報遅延';
-  const isInfo3Editable = status === '3次情報調査中' || status === '3次情報調査遅延' || status === '3次情報遅延' || status === '完了';
+  // ロールとステータスに応じた編集可能性の判定
+  const hasSecondInfo = incidentToEdit?.inputDate != null;
+  const hasThirdInfo = incidentToEdit?.inputDate3 != null;
+  const hasRecurrencePreventionMeasures = !!(incidentToEdit?.recurrencePreventionMeasures && incidentToEdit.recurrencePreventionMeasures.trim().length > 0);
+  
+  // 新規登録時はcanCreateFirstInfo、既存インシデントの編集時はcanUpdateFirstInfoを使用
+  const isInfo1Editable = incidentToEdit == null
+    ? canCreateFirstInfo(user?.userRoleId)
+    : canUpdateFirstInfo(user?.userRoleId, status, hasSecondInfo);
+  const isInfo2Editable = hasSecondInfo 
+    ? canUpdateSecondInfo(user?.userRoleId, status, hasThirdInfo)
+    : canCreateSecondInfo(user?.userRoleId, status, hasSecondInfo);
+  const isInfo3Editable = hasThirdInfo
+    ? canUpdateThirdInfo(user?.userRoleId, status, hasThirdInfo, hasRecurrencePreventionMeasures)
+    : canCreateThirdInfo(user?.userRoleId, status, hasThirdInfo);
 
 
   return (
