@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CalendarIcon, X, Download, Image } from "lucide-react";
+import { CalendarIcon, X, Download, Image, Eye, EyeOff } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
 import * as z from "zod";
 import { useState, useEffect } from "react";
@@ -128,6 +128,10 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
   const [uploadedFile, setUploadedFile] = useState<{ name: string; type: string; size: number } | null>(null);
   const [imagePreview1, setImagePreview1] = useState<string | null>(null);
   const [uploadedFile1, setUploadedFile1] = useState<{ name: string; type: string; size: number } | null>(null);
+  const [savedFileType1, setSavedFileType1] = useState<string | null>(null);
+  const [savedFileType, setSavedFileType] = useState<string | null>(null);
+  const [showPreview1, setShowPreview1] = useState<boolean>(false);
+  const [showPreview, setShowPreview] = useState<boolean>(false);
   const { masterData, loading: masterLoading, error: masterError } = useMasterData();
   const { user } = useAuth();
 
@@ -237,6 +241,7 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
       if (incidentToEdit.photoDataUri) {
         // DataURIからファイルタイプを判定
         const mimeType = incidentToEdit.photoDataUri.split(',')[0].split(':')[1].split(';')[0];
+        setSavedFileType(mimeType);
         if (mimeType.startsWith('image/')) {
           setImagePreview(incidentToEdit.photoDataUri);
         } else {
@@ -247,11 +252,13 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
       } else {
         setImagePreview(null);
         setUploadedFile(null);
+        setSavedFileType(null);
       }
 
       if (incidentToEdit.photoDataUri1) {
         // DataURIからファイルタイプを判定
         const mimeType = incidentToEdit.photoDataUri1.split(',')[0].split(':')[1].split(';')[0];
+        setSavedFileType1(mimeType);
         if (mimeType.startsWith('image/')) {
           setImagePreview1(incidentToEdit.photoDataUri1);
         } else {
@@ -262,6 +269,7 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
       } else {
         setImagePreview1(null);
         setUploadedFile1(null);
+        setSavedFileType1(null);
       }
     } else {
       setImagePreview(null);
@@ -301,6 +309,8 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
     form.setValue("photoDataUri", "", { shouldValidate: true });
     setImagePreview(null);
     setUploadedFile(null);
+    setSavedFileType(null);
+    setShowPreview(false);
     const fileInput = document.getElementById('photo-upload') as HTMLInputElement | null;
     if(fileInput) fileInput.value = '';
   };
@@ -388,6 +398,8 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
     form.setValue("photoDataUri1", "", { shouldValidate: true });
     setImagePreview1(null);
     setUploadedFile1(null);
+    setSavedFileType1(null);
+    setShowPreview1(false);
     const fileInput = document.getElementById('photo-upload-1') as HTMLInputElement | null;
     if(fileInput) fileInput.value = '';
   };
@@ -633,21 +645,76 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
                   </div>
                 )}
                 {!imagePreview1 && !uploadedFile1 && form.getValues("photoDataUri1") && (
-                  <div className="mt-2 p-3 border rounded-md bg-secondary/50">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">保存済みファイル</p>
-                        <p className="text-xs text-muted-foreground">既存のファイルが保存されています</p>
+                  <div className="mt-2">
+                    {showPreview1 && savedFileType1?.startsWith('image/') ? (
+                      <div className="relative w-48">
+                        <img src={form.getValues("photoDataUri1")} alt="保存済み画像プレビュー" className="w-full rounded-md border" />
+                        <div className="absolute top-1 right-1 flex gap-1">
+                          <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={() => setShowPreview1(false)} title="プレビューを閉じる">
+                            <EyeOff className="h-3 w-3" />
+                          </Button>
+                          <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={handleDownloadImage1} title="ファイルをダウンロード">
+                            <Download className="h-3 w-3" />
+                          </Button>
+                          <Button type="button" variant="destructive" size="icon" className="h-6 w-6" onClick={handleRemoveImage1} disabled={!isInfo1Editable} title="ファイルを削除">
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex gap-1">
-                        <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={handleDownloadImage1} title="ファイルをダウンロード">
-                          <Download className="h-3 w-3" />
-                        </Button>
-                        <Button type="button" variant="destructive" size="icon" className="h-6 w-6" onClick={handleRemoveImage1} disabled={!isInfo1Editable} title="ファイルを削除">
-                          <X className="h-3 w-3" />
-                        </Button>
+                    ) : showPreview1 && savedFileType1 === 'application/pdf' ? (
+                      <div className="space-y-2">
+                        <div className="relative w-full h-96 border rounded-md bg-secondary/50">
+                          <iframe
+                            src={form.getValues("photoDataUri1")}
+                            className="w-full h-full rounded-md"
+                            title="PDFプレビュー"
+                          />
+                          <div className="absolute top-1 right-1">
+                            <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={() => setShowPreview1(false)} title="プレビューを閉じる">
+                              <EyeOff className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between p-3 border rounded-md bg-secondary/50">
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">保存済みPDFファイル</p>
+                            <p className="text-xs text-muted-foreground">PDFファイルが保存されています</p>
+                          </div>
+                          <div className="flex gap-1">
+                            <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={handleDownloadImage1} title="ファイルをダウンロード">
+                              <Download className="h-3 w-3" />
+                            </Button>
+                            <Button type="button" variant="destructive" size="icon" className="h-6 w-6" onClick={handleRemoveImage1} disabled={!isInfo1Editable} title="ファイルを削除">
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="p-3 border rounded-md bg-secondary/50">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">保存済みファイル</p>
+                            <p className="text-xs text-muted-foreground">
+                              {savedFileType1?.startsWith('image/') ? '画像ファイル' : savedFileType1 === 'application/pdf' ? 'PDFファイル' : 'ファイル'}が保存されています
+                            </p>
+                          </div>
+                          <div className="flex gap-1">
+                            {(savedFileType1?.startsWith('image/') || savedFileType1 === 'application/pdf') && (
+                              <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={() => setShowPreview1(true)} title="プレビューを表示">
+                                <Eye className="h-3 w-3" />
+                              </Button>
+                            )}
+                            <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={handleDownloadImage1} title="ファイルをダウンロード">
+                              <Download className="h-3 w-3" />
+                            </Button>
+                            <Button type="button" variant="destructive" size="icon" className="h-6 w-6" onClick={handleRemoveImage1} disabled={!isInfo1Editable} title="ファイルを削除">
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
                 <FormMessage />
@@ -806,14 +873,15 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
                       </div>
                     </div>
                   )}
-                  {!imagePreview && !uploadedFile && form.getValues("photoDataUri") && (
-                    <div className="mt-2 p-3 border rounded-md bg-secondary/50">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">保存済みファイル</p>
-                          <p className="text-xs text-muted-foreground">既存のファイルが保存されています</p>
-                        </div>
-                        <div className="flex gap-1">
+                {!imagePreview && !uploadedFile && form.getValues("photoDataUri") && (
+                  <div className="mt-2">
+                    {showPreview && savedFileType?.startsWith('image/') ? (
+                      <div className="relative w-48">
+                        <img src={form.getValues("photoDataUri")} alt="保存済み画像プレビュー" className="w-full rounded-md border" />
+                        <div className="absolute top-1 right-1 flex gap-1">
+                          <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={() => setShowPreview(false)} title="プレビューを閉じる">
+                            <EyeOff className="h-3 w-3" />
+                          </Button>
                           <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={handleDownloadImage} title="ファイルをダウンロード">
                             <Download className="h-3 w-3" />
                           </Button>
@@ -822,8 +890,62 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
                           </Button>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    ) : showPreview && savedFileType === 'application/pdf' ? (
+                      <div className="space-y-2">
+                        <div className="relative w-full h-96 border rounded-md bg-secondary/50">
+                          <iframe
+                            src={form.getValues("photoDataUri")}
+                            className="w-full h-full rounded-md"
+                            title="PDFプレビュー"
+                          />
+                          <div className="absolute top-1 right-1">
+                            <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={() => setShowPreview(false)} title="プレビューを閉じる">
+                              <EyeOff className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between p-3 border rounded-md bg-secondary/50">
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">保存済みPDFファイル</p>
+                            <p className="text-xs text-muted-foreground">PDFファイルが保存されています</p>
+                          </div>
+                          <div className="flex gap-1">
+                            <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={handleDownloadImage} title="ファイルをダウンロード">
+                              <Download className="h-3 w-3" />
+                            </Button>
+                            <Button type="button" variant="destructive" size="icon" className="h-6 w-6" onClick={handleRemoveImage} disabled={!isInfo2Editable} title="ファイルを削除">
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-3 border rounded-md bg-secondary/50">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">保存済みファイル</p>
+                            <p className="text-xs text-muted-foreground">
+                              {savedFileType?.startsWith('image/') ? '画像ファイル' : savedFileType === 'application/pdf' ? 'PDFファイル' : 'ファイル'}が保存されています
+                            </p>
+                          </div>
+                          <div className="flex gap-1">
+                            {(savedFileType?.startsWith('image/') || savedFileType === 'application/pdf') && (
+                              <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={() => setShowPreview(true)} title="プレビューを表示">
+                                <Eye className="h-3 w-3" />
+                              </Button>
+                            )}
+                            <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={handleDownloadImage} title="ファイルをダウンロード">
+                              <Download className="h-3 w-3" />
+                            </Button>
+                            <Button type="button" variant="destructive" size="icon" className="h-6 w-6" onClick={handleRemoveImage} disabled={!isInfo2Editable} title="ファイルを削除">
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
                   <FormMessage />
                 </FormItem>
             </CardContent>
