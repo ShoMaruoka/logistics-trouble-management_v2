@@ -187,9 +187,6 @@ namespace LogisticsTroubleManagement.Services
                 // 現在のステータスを計算
                 var currentStatus = _statusCalculationService.CalculateIncidentStatus(incident);
 
-                // 更新対象の情報段階を判定
-                var updatedLevels = IncidentPermissionHelper.GetUpdatedInfoLevels(updateDto, incident);
-
                 // 1次情報の更新チェック
                 bool isFirstInfoUpdated = updateDto.CreationDate.HasValue ||
                                           updateDto.Organization.HasValue ||
@@ -244,6 +241,14 @@ namespace LogisticsTroubleManagement.Services
                             return ApiResponseDto<IncidentResponseDto>.ErrorResponse("2次情報修正の権限がありません");
                         }
                     }
+                    // 2次情報のフィールドが更新されているが、InputDateが設定されていない場合
+                    else
+                    {
+                        if (!IncidentPermissionHelper.CanCreateSecondInfo(userRoleId, currentStatus, incident))
+                        {
+                            return ApiResponseDto<IncidentResponseDto>.ErrorResponse("2次情報登録の権限がありません");
+                        }
+                    }
                 }
 
                 if (isThirdInfoUpdated)
@@ -262,6 +267,14 @@ namespace LogisticsTroubleManagement.Services
                         if (!IncidentPermissionHelper.CanUpdateThirdInfo(userRoleId, currentStatus, incident))
                         {
                             return ApiResponseDto<IncidentResponseDto>.ErrorResponse("3次情報修正の権限がありません");
+                        }
+                    }
+                    // 3次情報のフィールドが更新されているが、InputDate3が設定されていない場合
+                    else
+                    {
+                        if (!IncidentPermissionHelper.CanCreateThirdInfo(userRoleId, currentStatus, incident))
+                        {
+                            return ApiResponseDto<IncidentResponseDto>.ErrorResponse("3次情報登録の権限がありません");
                         }
                     }
                 }

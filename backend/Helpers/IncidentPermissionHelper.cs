@@ -183,7 +183,7 @@ namespace LogisticsTroubleManagement.Helpers
                 userRoleId == OfficeAdminRoleId ||
                 userRoleId == ThreePLRoleId)
             {
-                // 3次情報が登録済み（InputDate3が設定されている）場合
+                // 3次情報が登録済み（InputDate3が設定されている）場合のみ修正可能
                 if (incident != null && incident.InputDate3.HasValue)
                 {
                     // ステータスが「完了」の場合、または「3次情報調査中」「3次情報遅延」で再発防止策が空の場合も編集可能
@@ -194,14 +194,6 @@ namespace LogisticsTroubleManagement.Helpers
                     // 再発防止策が空またはnullの場合（未完了状態）も編集可能
                     if ((status == ThirdInfoInvestigation || status == ThirdInfoDelayed) &&
                         string.IsNullOrEmpty(incident.RecurrencePreventionMeasures))
-                    {
-                        return true;
-                    }
-                }
-                else
-                {
-                    // 3次情報が未登録の場合は、ステータスが「完了」の場合のみ
-                    if (status == Completed)
                     {
                         return true;
                     }

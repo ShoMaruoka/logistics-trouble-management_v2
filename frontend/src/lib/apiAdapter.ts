@@ -65,20 +65,20 @@ export function convertFrontendIncidentToApiRequest(
   
   return {
     creationDate: frontendIncident.creationDate!,
-    organization: convertNameToId(frontendIncident.organization!, masterData?.organizations) || convertOrganizationNameToId(frontendIncident.organization!, masterData),
+    organization: convertNameToId(frontendIncident.organization!, masterData?.organizations) ?? convertOrganizationNameToId(frontendIncident.organization!, masterData),
     creator: frontendIncident.creator!, // フォームで入力された作成者名をそのまま使用
     occurrenceDateTime: formattedOccurrenceDateTime,
-    occurrenceLocation: convertNameToId(frontendIncident.occurrenceLocation!, masterData?.occurrenceLocations) || convertOccurrenceLocationNameToId(frontendIncident.occurrenceLocation!, masterData),
-    shippingWarehouse: convertNameToId(frontendIncident.shippingWarehouse!, masterData?.shippingWarehouses) || convertWarehouseNameToId(frontendIncident.shippingWarehouse!, masterData),
-    shippingCompany: convertNameToId(frontendIncident.shippingCompany!, masterData?.shippingCompanies) || convertShippingCompanyNameToId(frontendIncident.shippingCompany!, masterData),
-    troubleCategory: convertNameToId(frontendIncident.troubleCategory!, masterData?.troubleCategories) || convertTroubleCategoryNameToId(frontendIncident.troubleCategory!, masterData),
-    troubleDetailCategory: convertNameToId(frontendIncident.troubleDetailCategory!, masterData?.troubleDetailCategories) || convertTroubleDetailCategoryNameToId(frontendIncident.troubleDetailCategory!, masterData),
+    occurrenceLocation: convertNameToId(frontendIncident.occurrenceLocation!, masterData?.occurrenceLocations) ?? convertOccurrenceLocationNameToId(frontendIncident.occurrenceLocation!, masterData),
+    shippingWarehouse: convertNameToId(frontendIncident.shippingWarehouse!, masterData?.shippingWarehouses) ?? convertWarehouseNameToId(frontendIncident.shippingWarehouse!, masterData),
+    shippingCompany: convertNameToId(frontendIncident.shippingCompany!, masterData?.shippingCompanies) ?? convertShippingCompanyNameToId(frontendIncident.shippingCompany!, masterData),
+    troubleCategory: convertNameToId(frontendIncident.troubleCategory!, masterData?.troubleCategories) ?? convertTroubleCategoryNameToId(frontendIncident.troubleCategory!, masterData),
+    troubleDetailCategory: convertNameToId(frontendIncident.troubleDetailCategory!, masterData?.troubleDetailCategories) ?? convertTroubleDetailCategoryNameToId(frontendIncident.troubleDetailCategory!, masterData),
     details: frontendIncident.details!,
     voucherNumber: frontendIncident.voucherNumber,
     customerCode: frontendIncident.customerCode,
     productCode: frontendIncident.productCode,
     quantity: frontendIncident.quantity,
-    unit: frontendIncident.unit ? (convertNameToId(frontendIncident.unit, masterData?.units) || convertUnitNameToId(frontendIncident.unit, masterData)) : undefined,
+    unit: frontendIncident.unit ? (convertNameToId(frontendIncident.unit, masterData?.units) ?? convertUnitNameToId(frontendIncident.unit, masterData)) : undefined,
   };
 }
 
@@ -93,7 +93,7 @@ export function convertFrontendIncidentToApiUpdateRequest(
   const updateRequest: IncidentUpdateRequest = {};
   
   // 1次情報のフィールドが存在する場合のみ含める
-  if (frontendIncident.creationDate) {
+  if (frontendIncident.creationDate !== undefined) {
     updateRequest.creationDate = frontendIncident.creationDate;
   }
   
@@ -107,39 +107,39 @@ export function convertFrontendIncidentToApiUpdateRequest(
   
   if (frontendIncident.organization) {
     updateRequest.organization = convertNameToId(frontendIncident.organization, masterData?.organizations) 
-      || convertOrganizationNameToId(frontendIncident.organization, masterData);
+      ?? convertOrganizationNameToId(frontendIncident.organization, masterData);
   }
   
-  if (frontendIncident.creator) {
+  if (frontendIncident.creator !== undefined) {
     updateRequest.creator = frontendIncident.creator;
   }
   
   if (frontendIncident.occurrenceLocation) {
     updateRequest.occurrenceLocation = convertNameToId(frontendIncident.occurrenceLocation, masterData?.occurrenceLocations) 
-      || convertOccurrenceLocationNameToId(frontendIncident.occurrenceLocation, masterData);
+      ?? convertOccurrenceLocationNameToId(frontendIncident.occurrenceLocation, masterData);
   }
   
   if (frontendIncident.shippingWarehouse) {
     updateRequest.shippingWarehouse = convertNameToId(frontendIncident.shippingWarehouse, masterData?.shippingWarehouses) 
-      || convertWarehouseNameToId(frontendIncident.shippingWarehouse, masterData);
+      ?? convertWarehouseNameToId(frontendIncident.shippingWarehouse, masterData);
   }
   
   if (frontendIncident.shippingCompany) {
     updateRequest.shippingCompany = convertNameToId(frontendIncident.shippingCompany, masterData?.shippingCompanies) 
-      || convertShippingCompanyNameToId(frontendIncident.shippingCompany, masterData);
+      ?? convertShippingCompanyNameToId(frontendIncident.shippingCompany, masterData);
   }
   
   if (frontendIncident.troubleCategory) {
     updateRequest.troubleCategory = convertNameToId(frontendIncident.troubleCategory, masterData?.troubleCategories) 
-      || convertTroubleCategoryNameToId(frontendIncident.troubleCategory, masterData);
+      ?? convertTroubleCategoryNameToId(frontendIncident.troubleCategory, masterData);
   }
   
   if (frontendIncident.troubleDetailCategory) {
     updateRequest.troubleDetailCategory = convertNameToId(frontendIncident.troubleDetailCategory, masterData?.troubleDetailCategories) 
-      || convertTroubleDetailCategoryNameToId(frontendIncident.troubleDetailCategory, masterData);
+      ?? convertTroubleDetailCategoryNameToId(frontendIncident.troubleDetailCategory, masterData);
   }
   
-  if (frontendIncident.details) {
+  if (frontendIncident.details !== undefined) {
     updateRequest.details = frontendIncident.details;
   }
   
@@ -161,7 +161,7 @@ export function convertFrontendIncidentToApiUpdateRequest(
   
   if (frontendIncident.unit) {
     updateRequest.unit = convertNameToId(frontendIncident.unit, masterData?.units) 
-      || convertUnitNameToId(frontendIncident.unit, masterData);
+      ?? convertUnitNameToId(frontendIncident.unit, masterData);
   }
   
   // 2次情報・3次情報のフィールド

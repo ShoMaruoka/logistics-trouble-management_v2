@@ -249,7 +249,7 @@ export const canUpdateThirdInfo = (
   if (userRoleId === SYSTEM_ADMIN_ROLE_ID ||
       userRoleId === OFFICE_ADMIN_ROLE_ID ||
       userRoleId === THREE_PL_ROLE_ID) {
-    // 3次情報が登録済み（InputDate3が設定されている）場合
+    // 3次情報が登録済み（InputDate3が設定されている）場合のみ修正可能
     if (hasThirdInfo) {
       // ステータスが「完了」の場合、または「3次情報調査中」「3次情報遅延」で再発防止策が空の場合も編集可能
       if (status === COMPLETED) {
@@ -258,11 +258,6 @@ export const canUpdateThirdInfo = (
       // 再発防止策が空の場合（未完了状態）も編集可能
       if ((status === THIRD_INFO_INVESTIGATION || status === THIRD_INFO_DELAYED) &&
           !hasRecurrencePreventionMeasures) {
-        return true;
-      }
-    } else {
-      // 3次情報が未登録の場合は、ステータスが「完了」の場合のみ
-      if (status === COMPLETED) {
         return true;
       }
     }

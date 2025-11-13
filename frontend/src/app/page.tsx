@@ -199,9 +199,23 @@ export default function Home() {
         
         if (infoLevel === 1) {
           // 1次情報の更新時は、1次情報のフィールドのみ送信
+          // 2次情報・3次情報のフィールドは送信しない（既存の値を保持）
           updateData = {
-            ...data,
-            // 2次情報・3次情報は送信しない（既存の値を保持）
+            creationDate: data.creationDate,
+            organization: data.organization,
+            creator: data.creator,
+            occurrenceDateTime: data.occurrenceDateTime,
+            occurrenceLocation: data.occurrenceLocation,
+            shippingWarehouse: data.shippingWarehouse,
+            shippingCompany: data.shippingCompany,
+            troubleCategory: data.troubleCategory,
+            troubleDetailCategory: data.troubleDetailCategory,
+            details: data.details,
+            voucherNumber: data.voucherNumber,
+            customerCode: data.customerCode,
+            productCode: data.productCode,
+            quantity: data.quantity,
+            unit: data.unit,
           };
         } else if (infoLevel === 2) {
           // 2次情報の更新時は、2次情報のフィールドのみ送信
