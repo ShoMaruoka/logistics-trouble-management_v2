@@ -105,6 +105,12 @@ namespace LogisticsTroubleManagement.Models
         /// </summary>
         public int? Unit { get; set; }
 
+        /// <summary>
+        /// 1次情報写真データURI
+        /// </summary>
+        [MaxLength(1000000)]
+        public string? PhotoDataUri1 { get; set; }
+
         // 2次情報
         /// <summary>
         /// 2次情報入力日

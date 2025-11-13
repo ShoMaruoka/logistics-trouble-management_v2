@@ -202,7 +202,8 @@ namespace LogisticsTroubleManagement.Services
                                           updateDto.CustomerCode != null ||
                                           updateDto.ProductCode != null ||
                                           updateDto.Quantity.HasValue ||
-                                          updateDto.Unit.HasValue;
+                                          updateDto.Unit.HasValue ||
+                                          !string.IsNullOrEmpty(updateDto.PhotoDataUri1);
 
                 // 2次情報の更新チェック
                 bool isSecondInfoUpdated = updateDto.InputDate.HasValue ||
@@ -310,6 +311,13 @@ namespace LogisticsTroubleManagement.Services
                     incident.Quantity = updateDto.Quantity.Value;
                 if (updateDto.Unit.HasValue)
                     incident.Unit = updateDto.Unit.Value;
+                if (updateDto.PhotoDataUri1 != null)
+                {
+                    // 空文字列の場合はnullに変換（データベースに空文字列を保存しない）
+                    incident.PhotoDataUri1 = string.IsNullOrWhiteSpace(updateDto.PhotoDataUri1) 
+                        ? null 
+                        : updateDto.PhotoDataUri1;
+                }
 
                 // 2次情報
                 if (updateDto.InputDate.HasValue)

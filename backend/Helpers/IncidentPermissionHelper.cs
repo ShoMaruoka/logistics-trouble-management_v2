@@ -230,7 +230,8 @@ namespace LogisticsTroubleManagement.Helpers
                                       updateDto.CustomerCode != null ||
                                       updateDto.ProductCode != null ||
                                       updateDto.Quantity.HasValue ||
-                                      updateDto.Unit.HasValue;
+                                      updateDto.Unit.HasValue ||
+                                      !string.IsNullOrEmpty(updateDto.PhotoDataUri1);
 
             // 2次情報の更新チェック
             bool isSecondInfoUpdated = updateDto.InputDate.HasValue ||

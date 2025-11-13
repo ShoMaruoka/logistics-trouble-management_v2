@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CalendarIcon, X, Download } from "lucide-react";
+import { CalendarIcon, X, Download, Image } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
 import * as z from "zod";
 import { useState, useEffect } from "react";
@@ -50,16 +50,19 @@ const baseFormSchema = z.object({
   shippingCompany: z.string().min(1, "運送会社名を選択してください。"),
   troubleCategory: z.string().min(1, "トラブル区分を選択してください。"),
   troubleDetailCategory: z.string().min(1, "トラブル詳細区分を選択してください。"),
-  details: z.string().min(1, "内容詳細は必須です。"),
+  details: z.string().min(1, "トラブル内容詳細は必須です。"),
   voucherNumber: z.string().optional().refine((val) => !val || /^[0-9]{9}$/.test(val), {
     message: "9桁の正しい伝票番号（受注番号）を入力してください"
   }),
-  customerCode: z.string().optional(),
+  customerCode: z.string().optional().refine((val) => !val || val.length <= 6, {
+    message: "6桁までで入力してください"
+  }),
   productCode: z.string().optional().refine((val) => !val || val.length === 13, {
     message: "13桁で入力してください"
   }),
   quantity: z.coerce.number().min(0, "数量は0以上で入力してください。").optional(),
   unit: z.string().optional(),
+  photoDataUri1: z.string().optional(),
   // 2次情報
   inputDate: z.string().optional(),
   processDescription: z.string().optional(),
@@ -86,7 +89,7 @@ const formSchema = baseFormSchema.superRefine((data, ctx) => {
 const info1Base = baseFormSchema.pick({
   creationDate: true, organization: true, creator: true, occurrenceDateTime: true, occurrenceLocation: true,
   shippingWarehouse: true, shippingCompany: true, troubleCategory: true, troubleDetailCategory: true, details: true,
-  voucherNumber: true, customerCode: true, productCode: true, quantity: true, unit: true,
+  voucherNumber: true, customerCode: true, productCode: true, quantity: true, unit: true, photoDataUri1: true,
 });
 const info1Schema = info1Base.superRefine((data, ctx) => {
   const exempt = data.occurrenceLocation === '倉庫（入荷作業）' || data.occurrenceLocation === '倉庫（格納作業）';
@@ -123,6 +126,8 @@ type IncidentFormProps = {
 export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormProps) {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadedFile, setUploadedFile] = useState<{ name: string; type: string; size: number } | null>(null);
+  const [imagePreview1, setImagePreview1] = useState<string | null>(null);
+  const [uploadedFile1, setUploadedFile1] = useState<{ name: string; type: string; size: number } | null>(null);
   const { masterData, loading: masterLoading, error: masterError } = useMasterData();
   const { user } = useAuth();
 
@@ -152,6 +157,7 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
       productCode: incidentToEdit?.productCode || undefined,
       quantity: incidentToEdit?.quantity || undefined,
       unit: incidentToEdit?.unit || undefined,
+      photoDataUri1: incidentToEdit?.photoDataUri1 || undefined,
       inputDate: incidentToEdit?.inputDate ? format(new Date(incidentToEdit.inputDate), "yyyy-MM-dd") : format(new Date(), 'yyyy-MM-dd'),
       processDescription: incidentToEdit?.processDescription || undefined,
       cause: incidentToEdit?.cause || undefined,
@@ -219,6 +225,7 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
         productCode: incidentToEdit.productCode || undefined,
         quantity: incidentToEdit.quantity || undefined,
         unit: incidentToEdit.unit || undefined,
+        photoDataUri1: incidentToEdit.photoDataUri1 || undefined,
         inputDate: incidentToEdit.inputDate ? format(new Date(incidentToEdit.inputDate), "yyyy-MM-dd") : format(new Date(), 'yyyy-MM-dd'),
         processDescription: incidentToEdit.processDescription || undefined,
         cause: incidentToEdit.cause || undefined,
@@ -241,9 +248,26 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
         setImagePreview(null);
         setUploadedFile(null);
       }
+
+      if (incidentToEdit.photoDataUri1) {
+        // DataURIからファイルタイプを判定
+        const mimeType = incidentToEdit.photoDataUri1.split(',')[0].split(':')[1].split(';')[0];
+        if (mimeType.startsWith('image/')) {
+          setImagePreview1(incidentToEdit.photoDataUri1);
+        } else {
+          setImagePreview1(null);
+        }
+        // ファイル情報は不明なのでnullのまま
+        setUploadedFile1(null);
+      } else {
+        setImagePreview1(null);
+        setUploadedFile1(null);
+      }
     } else {
       setImagePreview(null);
       setUploadedFile(null);
+      setImagePreview1(null);
+      setUploadedFile1(null);
     }
   }, [incidentToEdit, form]);
 
@@ -313,6 +337,93 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
       
       // DataURIをBlobに変換
       const byteString = atob(photoDataUri.split(',')[1]);
+      const ab = new ArrayBuffer(byteString.length);
+      const ia = new Uint8Array(ab);
+      for (let i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+      }
+      const blob = new Blob([ab], { type: mimeString });
+      
+      // ダウンロード実行
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('ファイルのダウンロードに失敗しました:', error);
+    }
+  };
+
+  const handleImageChange1 = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const dataUri = reader.result as string;
+        form.setValue("photoDataUri1", dataUri, { shouldValidate: true });
+        
+        // ファイル情報を保存
+        setUploadedFile1({
+          name: file.name,
+          type: file.type,
+          size: file.size
+        });
+        
+        // 画像ファイルの場合のみプレビューを設定
+        if (file.type.startsWith('image/')) {
+          setImagePreview1(dataUri);
+        } else {
+          setImagePreview1(null);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveImage1 = () => {
+    form.setValue("photoDataUri1", "", { shouldValidate: true });
+    setImagePreview1(null);
+    setUploadedFile1(null);
+    const fileInput = document.getElementById('photo-upload-1') as HTMLInputElement | null;
+    if(fileInput) fileInput.value = '';
+  };
+
+  const handleDownloadImage1 = () => {
+    const photoDataUri1 = form.getValues("photoDataUri1");
+    if (!photoDataUri1) return;
+    
+    try {
+      // DataURIからMIMEタイプを取得
+      const mimeString = photoDataUri1.split(',')[0].split(':')[1].split(';')[0];
+      
+      // ファイル名を生成
+      const incidentId = incidentToEdit?.id || 'new';
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+      let filename: string;
+      let extension: string;
+      
+      if (uploadedFile1) {
+        // アップロードされたファイルの元の名前を使用
+        extension = uploadedFile1.name.split('.').pop() || 'bin';
+        filename = `incident1_${incidentId}_${timestamp}.${extension}`;
+      } else {
+        // MIMEタイプから拡張子を決定
+        if (mimeString === 'application/pdf') {
+          extension = 'pdf';
+        } else if (mimeString.startsWith('image/')) {
+          extension = mimeString.split('/')[1] || 'jpg';
+        } else {
+          extension = 'bin';
+        }
+        filename = `incident1_${incidentId}_${timestamp}.${extension}`;
+      }
+      
+      // DataURIをBlobに変換
+      const byteString = atob(photoDataUri1.split(',')[1]);
       const ab = new ArrayBuffer(byteString.length);
       const ia = new Uint8Array(ab);
       for (let i = 0; i < byteString.length; i++) {
@@ -433,9 +544,9 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
         )}
         <div className="max-h-[70vh] overflow-y-auto pr-4 space-y-6">
           
-          <fieldset disabled={!isInfo1Editable}>
-            <Card>
-              <CardHeader><CardTitle>1次情報</CardTitle></CardHeader>
+          <Card>
+            <CardHeader><CardTitle>1次情報</CardTitle></CardHeader>
+            <fieldset disabled={!isInfo1Editable}>
               <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <DateField name="creationDate" label="作成日" />
                 <FormField control={form.control} name="organization" render={({ field }) => ( <FormItem><FormLabel>所属組織</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={masterLoading || !isInfo1Editable}><FormControl><SelectTrigger><SelectValue placeholder={masterLoading ? "読込中..." : "選択..."} /></SelectTrigger></FormControl><SelectContent>{masterData?.organizations?.map((o: MasterDataItem) => <SelectItem key={o.id} value={o.name}>{o.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
@@ -478,7 +589,72 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
                     </FormItem>
                   );
                 }} />
-                <FormField control={form.control} name="details" render={({ field }) => ( <FormItem className="lg:col-span-3"><FormLabel>内容詳細</FormLabel><FormControl><Textarea placeholder="トラブル内容の詳細..." {...field} rows={3}/></FormControl><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="details" render={({ field }) => ( <FormItem className="lg:col-span-3"><FormLabel>トラブル内容詳細</FormLabel><FormControl><Textarea placeholder="トラブル内容の詳細..." {...field} rows={3}/></FormControl><FormMessage /></FormItem> )} />
+              </CardContent>
+            </fieldset>
+            {/* 1次情報の写真セクション（fieldsetの外に配置してダウンロードを全ロールで可能に） */}
+            <CardContent className="pt-0">
+              <FormItem className="lg:col-span-3">
+                <FormLabel>写真・添付ファイル</FormLabel>
+                <FormControl>
+                  <Input id="photo-upload-1" type="file" accept="image/*,application/pdf" onChange={handleImageChange1} disabled={!isInfo1Editable} className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed" />
+                </FormControl>
+                {imagePreview1 && (
+                  <div className="relative mt-2 w-48">
+                    <img src={imagePreview1} alt="プレビュー" className="w-full rounded-md border" />
+                    <div className="absolute top-1 right-1 flex gap-1">
+                      <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={handleDownloadImage1} title="ファイルをダウンロード">
+                        <Download className="h-3 w-3" />
+                      </Button>
+                      <Button type="button" variant="destructive" size="icon" className="h-6 w-6" onClick={handleRemoveImage1} disabled={!isInfo1Editable} title="ファイルを削除">
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+                {!imagePreview1 && uploadedFile1 && (
+                  <div className="mt-2 p-3 border rounded-md bg-secondary/50">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{uploadedFile1.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {uploadedFile1.type} • {(uploadedFile1.size / 1024).toFixed(1)} KB
+                        </p>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={handleDownloadImage1} title="ファイルをダウンロード">
+                          <Download className="h-3 w-3" />
+                        </Button>
+                        <Button type="button" variant="destructive" size="icon" className="h-6 w-6" onClick={handleRemoveImage1} disabled={!isInfo1Editable} title="ファイルを削除">
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {!imagePreview1 && !uploadedFile1 && form.getValues("photoDataUri1") && (
+                  <div className="mt-2 p-3 border rounded-md bg-secondary/50">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">保存済みファイル</p>
+                        <p className="text-xs text-muted-foreground">既存のファイルが保存されています</p>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={handleDownloadImage1} title="ファイルをダウンロード">
+                          <Download className="h-3 w-3" />
+                        </Button>
+                        <Button type="button" variant="destructive" size="icon" className="h-6 w-6" onClick={handleRemoveImage1} disabled={!isInfo1Editable} title="ファイルを削除">
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <FormMessage />
+              </FormItem>
+            </CardContent>
+            <fieldset disabled={!isInfo1Editable}>
+              <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-0">
                 <FormField
                   control={form.control}
                   name="voucherNumber"
@@ -501,8 +677,8 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
                     </FormItem>
                   )}
                 />
-                <FormField control={form.control} name="customerCode" render={({ field }) => ( <FormItem><FormLabel>得意先コード</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem> )} />
-                <FormField control={form.control} name="productCode" render={({ field }) => ( <FormItem><FormLabel>商品CD</FormLabel><FormControl><Input {...field} maxLength={13} /></FormControl><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="customerCode" render={({ field }) => ( <FormItem><FormLabel>得意先コード（複数時はトラブル内容詳細に記載）</FormLabel><FormControl><Input {...field} maxLength={6} /></FormControl><FormMessage /></FormItem> )} />
+                <FormField control={form.control} name="productCode" render={({ field }) => ( <FormItem><FormLabel>商品CD（複数時はトラブル内容詳細に記載）</FormLabel><FormControl><Input {...field} maxLength={13} /></FormControl><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="quantity" render={({ field }) => {
                   // 入力値をフィルタリングして、マイナス記号や不正な文字を除去（整数のみ許可）
                   const sanitizeInput = (value: string): string => {
@@ -564,28 +740,38 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
                 }} />
                 <FormField control={form.control} name="unit" render={({ field }) => ( <FormItem><FormLabel>単位</FormLabel><Select onValueChange={field.onChange} value={field.value} disabled={masterLoading || !isInfo1Editable}><FormControl><SelectTrigger><SelectValue placeholder={masterLoading ? "読込中..." : "選択..."} /></SelectTrigger></FormControl><SelectContent>{masterData?.units?.map((u: MasterDataItem) => <SelectItem key={u.id} value={u.name}>{u.name}</SelectItem>)}</SelectContent></Select><FormMessage /></FormItem> )} />
               </CardContent>
-              <CardFooter className="flex justify-end">
-                <Button type="button" onClick={() => handleSaveSection(1)}>1次情報を登録</Button>
-              </CardFooter>
-            </Card>
-          </fieldset>
+            </fieldset>
+            <CardFooter className="flex justify-end">
+              <Button type="button" onClick={() => handleSaveSection(1)} disabled={!isInfo1Editable}>1次情報を登録</Button>
+            </CardFooter>
+          </Card>
           
-          <fieldset disabled={!isInfo2Editable}>
-            <Card>
-              <CardHeader>
-                <CardTitle>2次情報</CardTitle>
-                <CardDescription className="!mt-2 text-destructive">※1次情報登録から7日以内に入力してください。</CardDescription>
-              </CardHeader>
+          <Card>
+            <CardHeader>
+              <CardTitle>2次情報</CardTitle>
+              <CardDescription className="!mt-2 text-destructive">※1次情報登録から7日以内に入力してください。</CardDescription>
+              {form.getValues("photoDataUri1") && (
+                <div className="!mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                  <Image className="h-4 w-4" />
+                  <span>※1次情報に写真が登録されています</span>
+                </div>
+              )}
+            </CardHeader>
+            <fieldset disabled={!isInfo2Editable}>
               <CardContent className="grid grid-cols-1 gap-4">
                 <div>
                   <DateField name="inputDate" label="入力日" />
                 </div>
                 <FormField control={form.control} name="processDescription" render={({ field }) => ( <FormItem><FormLabel>発生経緯</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem> )} />
                 <FormField control={form.control} name="cause" render={({ field }) => ( <FormItem><FormLabel>発生原因</FormLabel><FormControl><Textarea {...field} rows={4} /></FormControl><FormMessage /></FormItem> )} />
+              </CardContent>
+            </fieldset>
+            {/* 2次情報の写真セクション（fieldsetの外に配置してダウンロードを全ロールで可能に） */}
+            <CardContent className="pt-0">
                 <FormItem>
                   <FormLabel>写真・添付ファイル</FormLabel>
                   <FormControl>
-                    <Input id="photo-upload" type="file" accept="image/*,application/pdf" onChange={handleImageChange} className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90" />
+                    <Input id="photo-upload" type="file" accept="image/*,application/pdf" onChange={handleImageChange} disabled={!isInfo2Editable} className="file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed" />
                   </FormControl>
                   {imagePreview && (
                     <div className="relative mt-2 w-48">
@@ -594,7 +780,7 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
                         <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={handleDownloadImage} title="ファイルをダウンロード">
                           <Download className="h-3 w-3" />
                         </Button>
-                        <Button type="button" variant="destructive" size="icon" className="h-6 w-6" onClick={handleRemoveImage} title="ファイルを削除">
+                        <Button type="button" variant="destructive" size="icon" className="h-6 w-6" onClick={handleRemoveImage} disabled={!isInfo2Editable} title="ファイルを削除">
                           <X className="h-3 w-3" />
                         </Button>
                       </div>
@@ -613,7 +799,7 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
                           <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={handleDownloadImage} title="ファイルをダウンロード">
                             <Download className="h-3 w-3" />
                           </Button>
-                          <Button type="button" variant="destructive" size="icon" className="h-6 w-6" onClick={handleRemoveImage} title="ファイルを削除">
+                          <Button type="button" variant="destructive" size="icon" className="h-6 w-6" onClick={handleRemoveImage} disabled={!isInfo2Editable} title="ファイルを削除">
                             <X className="h-3 w-3" />
                           </Button>
                         </div>
@@ -631,7 +817,7 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
                           <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={handleDownloadImage} title="ファイルをダウンロード">
                             <Download className="h-3 w-3" />
                           </Button>
-                          <Button type="button" variant="destructive" size="icon" className="h-6 w-6" onClick={handleRemoveImage} title="ファイルを削除">
+                          <Button type="button" variant="destructive" size="icon" className="h-6 w-6" onClick={handleRemoveImage} disabled={!isInfo2Editable} title="ファイルを削除">
                             <X className="h-3 w-3" />
                           </Button>
                         </div>
@@ -640,12 +826,11 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
                   )}
                   <FormMessage />
                 </FormItem>
-              </CardContent>
-               <CardFooter className="flex justify-end">
-                <Button type="button" onClick={() => handleSaveSection(2)} disabled={!incidentToEdit}>2次情報を登録</Button>
-              </CardFooter>
-            </Card>
-          </fieldset>
+            </CardContent>
+            <CardFooter className="flex justify-end">
+              <Button type="button" onClick={() => handleSaveSection(2)} disabled={!incidentToEdit || !isInfo2Editable}>2次情報を登録</Button>
+            </CardFooter>
+          </Card>
 
           <fieldset disabled={!isInfo3Editable}>
             <Card>

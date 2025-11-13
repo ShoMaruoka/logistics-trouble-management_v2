@@ -178,6 +178,7 @@ BEGIN
         商品コード NVARCHAR(50),
         数量 DECIMAL(18,2),
         単位ID INT,
+        1次情報写真データURI NVARCHAR(MAX),
         "2次情報入力日" DATE,
         発生経緯 NVARCHAR(MAX),
         発生原因 NVARCHAR(MAX),

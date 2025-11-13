@@ -71,9 +71,11 @@ export interface IncidentRequest {
   productCode?: string;
   quantity?: number;
   unit?: number;
+  photoDataUri1?: string;
 }
 
 export interface IncidentUpdateRequest extends Partial<IncidentRequest> {
+  photoDataUri1?: string;
   inputDate?: string;
   processDescription?: string;
   cause?: string;
@@ -99,6 +101,7 @@ export interface IncidentResponse {
   productCode?: string;
   quantity?: number;
   unit?: number;
+  photoDataUri1?: string;
   inputDate?: string;
   processDescription?: string;
   cause?: string;

@@ -16,6 +16,7 @@ export type Incident = {
   productCode?: string;
   quantity?: number;
   unit?: 'パレット' | 'ケース' | 'ボール' | 'ピース';
+  photoDataUri1?: string;
 
   // 2次情報
   inputDate?: string; // YYYY-MM-DD

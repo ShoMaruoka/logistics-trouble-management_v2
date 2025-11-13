@@ -216,6 +216,7 @@ export default function Home() {
             productCode: data.productCode,
             quantity: data.quantity,
             unit: data.unit,
+            photoDataUri1: data.photoDataUri1,
           };
         } else if (infoLevel === 2) {
           // 2次情報の更新時は、2次情報のフィールドのみ送信

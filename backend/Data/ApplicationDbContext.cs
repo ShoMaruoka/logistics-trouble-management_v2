@@ -94,6 +94,7 @@ namespace LogisticsTroubleManagement.Data
                 entity.Property(e => e.ProductCode).HasColumnName("商品コード").HasMaxLength(50);
                 entity.Property(e => e.Quantity).HasColumnName("数量").HasPrecision(18, 2);
                 entity.Property(e => e.Unit).HasColumnName("単位ID").HasMaxLength(20);
+                entity.Property(e => e.PhotoDataUri1).HasColumnName("1次情報写真データURI").HasMaxLength(1000000);
                 entity.Property(e => e.InputDate).HasColumnName("2次情報入力日");
                 entity.Property(e => e.ProcessDescription).HasColumnName("発生経緯").HasMaxLength(2000);
                 entity.Property(e => e.Cause).HasColumnName("発生原因").HasMaxLength(2000);
