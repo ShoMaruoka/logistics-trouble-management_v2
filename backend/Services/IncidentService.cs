@@ -1,6 +1,7 @@
 using AutoMapper;
 using LogisticsTroubleManagement.Data;
 using LogisticsTroubleManagement.DTOs;
+using LogisticsTroubleManagement.Helpers;
 using LogisticsTroubleManagement.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -137,10 +138,16 @@ namespace LogisticsTroubleManagement.Services
         /// <summary>
         /// インシデントの作成
         /// </summary>
-        public async Task<ApiResponseDto<IncidentResponseDto>> CreateIncidentAsync(CreateIncidentDto createDto, int userId)
+        public async Task<ApiResponseDto<IncidentResponseDto>> CreateIncidentAsync(CreateIncidentDto createDto, int userId, int userRoleId)
         {
             try
             {
+                // 1次情報登録権限チェック
+                if (!IncidentPermissionHelper.CanCreateFirstInfo(userRoleId))
+                {
+                    return ApiResponseDto<IncidentResponseDto>.ErrorResponse("1次情報登録の権限がありません");
+                }
+
                 var incident = _mapper.Map<Incident>(createDto);
                 // IDは自動生成されるため設定不要
                 incident.CreatedBy = userId;
@@ -165,7 +172,7 @@ namespace LogisticsTroubleManagement.Services
         /// <summary>
         /// インシデントの更新
         /// </summary>
-        public async Task<ApiResponseDto<IncidentResponseDto>> UpdateIncidentAsync(int id, UpdateIncidentDto updateDto, int userId)
+        public async Task<ApiResponseDto<IncidentResponseDto>> UpdateIncidentAsync(int id, UpdateIncidentDto updateDto, int userId, int userRoleId)
         {
             try
             {
@@ -175,6 +182,101 @@ namespace LogisticsTroubleManagement.Services
                 if (incident == null)
                 {
                     return ApiResponseDto<IncidentResponseDto>.ErrorResponse("インシデントが見つかりません");
+                }
+
+                // 現在のステータスを計算
+                var currentStatus = _statusCalculationService.CalculateIncidentStatus(incident);
+
+                // 1次情報の更新チェック
+                bool isFirstInfoUpdated = updateDto.CreationDate.HasValue ||
+                                          updateDto.Organization.HasValue ||
+                                          !string.IsNullOrEmpty(updateDto.Creator) ||
+                                          updateDto.OccurrenceDateTime.HasValue ||
+                                          updateDto.OccurrenceLocation.HasValue ||
+                                          updateDto.ShippingWarehouse.HasValue ||
+                                          updateDto.ShippingCompany.HasValue ||
+                                          updateDto.TroubleCategory.HasValue ||
+                                          updateDto.TroubleDetailCategory.HasValue ||
+                                          !string.IsNullOrEmpty(updateDto.Details) ||
+                                          updateDto.VoucherNumber != null ||
+                                          updateDto.CustomerCode != null ||
+                                          updateDto.ProductCode != null ||
+                                          updateDto.Quantity.HasValue ||
+                                          updateDto.Unit.HasValue;
+
+                // 2次情報の更新チェック
+                bool isSecondInfoUpdated = updateDto.InputDate.HasValue ||
+                                           !string.IsNullOrEmpty(updateDto.ProcessDescription) ||
+                                           !string.IsNullOrEmpty(updateDto.Cause) ||
+                                           !string.IsNullOrEmpty(updateDto.PhotoDataUri);
+
+                // 3次情報の更新チェック
+                bool isThirdInfoUpdated = updateDto.InputDate3.HasValue ||
+                                          !string.IsNullOrEmpty(updateDto.RecurrencePreventionMeasures);
+
+                // 権限チェック
+                if (isFirstInfoUpdated)
+                {
+                    if (!IncidentPermissionHelper.CanUpdateFirstInfo(userRoleId, currentStatus, incident))
+                    {
+                        return ApiResponseDto<IncidentResponseDto>.ErrorResponse("1次情報修正の権限がありません");
+                    }
+                }
+
+                if (isSecondInfoUpdated)
+                {
+                    // 2次情報登録の判定（既存がnullで新規に設定される場合）
+                    if (!incident.InputDate.HasValue && updateDto.InputDate.HasValue)
+                    {
+                        if (!IncidentPermissionHelper.CanCreateSecondInfo(userRoleId, currentStatus, incident))
+                        {
+                            return ApiResponseDto<IncidentResponseDto>.ErrorResponse("2次情報登録の権限がありません");
+                        }
+                    }
+                    // 2次情報修正の判定（既存が設定済みで更新される場合）
+                    else if (incident.InputDate.HasValue)
+                    {
+                        if (!IncidentPermissionHelper.CanUpdateSecondInfo(userRoleId, currentStatus, incident))
+                        {
+                            return ApiResponseDto<IncidentResponseDto>.ErrorResponse("2次情報修正の権限がありません");
+                        }
+                    }
+                    // 2次情報のフィールドが更新されているが、InputDateが設定されていない場合
+                    else
+                    {
+                        if (!IncidentPermissionHelper.CanCreateSecondInfo(userRoleId, currentStatus, incident))
+                        {
+                            return ApiResponseDto<IncidentResponseDto>.ErrorResponse("2次情報登録の権限がありません");
+                        }
+                    }
+                }
+
+                if (isThirdInfoUpdated)
+                {
+                    // 3次情報登録の判定（既存がnullで新規に設定される場合）
+                    if (!incident.InputDate3.HasValue && updateDto.InputDate3.HasValue)
+                    {
+                        if (!IncidentPermissionHelper.CanCreateThirdInfo(userRoleId, currentStatus, incident))
+                        {
+                            return ApiResponseDto<IncidentResponseDto>.ErrorResponse("3次情報登録の権限がありません");
+                        }
+                    }
+                    // 3次情報修正の判定（既存が設定済みで更新される場合）
+                    else if (incident.InputDate3.HasValue)
+                    {
+                        if (!IncidentPermissionHelper.CanUpdateThirdInfo(userRoleId, currentStatus, incident))
+                        {
+                            return ApiResponseDto<IncidentResponseDto>.ErrorResponse("3次情報修正の権限がありません");
+                        }
+                    }
+                    // 3次情報のフィールドが更新されているが、InputDate3が設定されていない場合
+                    else
+                    {
+                        if (!IncidentPermissionHelper.CanCreateThirdInfo(userRoleId, currentStatus, incident))
+                        {
+                            return ApiResponseDto<IncidentResponseDto>.ErrorResponse("3次情報登録の権限がありません");
+                        }
+                    }
                 }
 
                 // 更新可能なプロパティのみ更新
@@ -213,17 +315,37 @@ namespace LogisticsTroubleManagement.Services
                 if (updateDto.InputDate.HasValue)
                     incident.InputDate = updateDto.InputDate.Value;
                 if (updateDto.ProcessDescription != null)
-                    incident.ProcessDescription = updateDto.ProcessDescription;
+                {
+                    // 空文字列の場合はnullに変換（データベースに空文字列を保存しない）
+                    incident.ProcessDescription = string.IsNullOrWhiteSpace(updateDto.ProcessDescription) 
+                        ? null 
+                        : updateDto.ProcessDescription;
+                }
                 if (updateDto.Cause != null)
-                    incident.Cause = updateDto.Cause;
+                {
+                    // 空文字列の場合はnullに変換（データベースに空文字列を保存しない）
+                    incident.Cause = string.IsNullOrWhiteSpace(updateDto.Cause) 
+                        ? null 
+                        : updateDto.Cause;
+                }
                 if (updateDto.PhotoDataUri != null)
-                    incident.PhotoDataUri = updateDto.PhotoDataUri;
+                {
+                    // 空文字列の場合はnullに変換（データベースに空文字列を保存しない）
+                    incident.PhotoDataUri = string.IsNullOrWhiteSpace(updateDto.PhotoDataUri) 
+                        ? null 
+                        : updateDto.PhotoDataUri;
+                }
 
                 // 3次情報
                 if (updateDto.InputDate3.HasValue)
                     incident.InputDate3 = updateDto.InputDate3.Value;
                 if (updateDto.RecurrencePreventionMeasures != null)
-                    incident.RecurrencePreventionMeasures = updateDto.RecurrencePreventionMeasures;
+                {
+                    // 空文字列の場合はnullに変換（データベースに空文字列を保存しない）
+                    incident.RecurrencePreventionMeasures = string.IsNullOrWhiteSpace(updateDto.RecurrencePreventionMeasures) 
+                        ? null 
+                        : updateDto.RecurrencePreventionMeasures;
+                }
 
                 incident.UpdatedBy = userId;
                 incident.UpdatedAt = DateTime.UtcNow;
