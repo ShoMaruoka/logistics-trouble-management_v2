@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CalendarIcon, X, Download, Image, Eye, EyeOff } from "lucide-react";
+import { CalendarIcon, X, Download, Image, Eye } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
 import * as z from "zod";
 import { useState, useEffect } from "react";
@@ -152,6 +152,146 @@ const serializeFileArray = (files: FileInfo[]): string => {
   return JSON.stringify(files);
 };
 
+// 別ウインドウでプレビューを表示するヘルパー関数
+const openPreviewWindow = (file: FileInfo) => {
+  const width = 1200;
+  const height = 800;
+  const left = (window.screen.width - width) / 2;
+  const top = (window.screen.height - height) / 2;
+  
+  const previewWindow = window.open('', '_blank', `width=${width},height=${height},left=${left},top=${top}`);
+  
+  if (!previewWindow) {
+    alert('ポップアップブロックが有効になっているため、プレビューを表示できません。ブラウザの設定を確認してください。');
+    return;
+  }
+  
+  let htmlContent = '';
+  
+  if (file.fileType.startsWith('image/')) {
+    // 画像の場合
+    htmlContent = `
+      <!DOCTYPE html>
+      <html lang="ja">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>プレビュー: ${file.fileName}</title>
+        <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          body {
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            overflow: auto;
+          }
+          .preview-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 20px;
+          }
+          img {
+            width: auto;
+            height: auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            display: block;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="preview-container">
+          <img src="${file.dataUri}" alt="${file.fileName}" />
+        </div>
+      </body>
+      </html>
+    `;
+  } else if (file.fileType === 'application/pdf') {
+    // PDFの場合
+    htmlContent = `
+      <!DOCTYPE html>
+      <html lang="ja">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>プレビュー: ${file.fileName}</title>
+        <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          body {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background-color: #f5f5f5;
+          }
+          iframe {
+            flex: 1;
+            width: 100%;
+            border: none;
+          }
+        </style>
+      </head>
+      <body>
+        <iframe src="${file.dataUri}" title="${file.fileName}"></iframe>
+      </body>
+      </html>
+    `;
+  } else {
+    // その他のファイルタイプ
+    htmlContent = `
+      <!DOCTYPE html>
+      <html lang="ja">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>プレビュー: ${file.fileName}</title>
+        <style>
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f5f5f5;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          }
+          .message {
+            text-align: center;
+            color: #666;
+            padding: 40px;
+            max-width: 100%;
+            word-break: break-word;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="message">
+          <p>このファイルタイプはプレビュー表示に対応していません。</p>
+          <p>ダウンロードしてご確認ください。</p>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+  
+  previewWindow.document.write(htmlContent);
+  previewWindow.document.close();
+};
+
 export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormProps) {
   const [files1, setFiles1] = useState<FileInfo[]>([]); // 1次情報のファイル配列（保存済み）
   const [files, setFiles] = useState<FileInfo[]>([]); // 2次情報のファイル配列（保存済み）
@@ -159,8 +299,6 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
   const [pendingFiles, setPendingFiles] = useState<FileInfo[]>([]); // 2次情報の一時ファイル配列（未保存）
   const [fileIds1, setFileIds1] = useState<Map<number, number>>(new Map()); // ファイルインデックス -> APIファイルIDのマッピング（1次情報）
   const [fileIds, setFileIds] = useState<Map<number, number>>(new Map()); // ファイルインデックス -> APIファイルIDのマッピング（2次情報）
-  const [previewIndex1, setPreviewIndex1] = useState<number | null>(null); // 1次情報のプレビュー中のファイルインデックス
-  const [previewIndex, setPreviewIndex] = useState<number | null>(null); // 2次情報のプレビュー中のファイルインデックス
   const [loadingFiles, setLoadingFiles] = useState(false); // ファイル読み込み中フラグ
   const { masterData, loading: masterLoading, error: masterError } = useMasterData();
   const { user } = useAuth();
@@ -419,11 +557,6 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
       // 一時ファイルの削除
       const updatedPendingFiles = pendingFiles.filter((_, i) => i !== actualIndex);
       setPendingFiles(updatedPendingFiles);
-      if (previewIndex === index) {
-        setPreviewIndex(null);
-      } else if (previewIndex !== null && previewIndex > index) {
-        setPreviewIndex(previewIndex - 1);
-      }
       return;
     }
 
@@ -451,11 +584,6 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
           if (oldId) newIdsMap.set(i, oldId);
         });
         setFileIds(newIdsMap);
-        if (previewIndex === index) {
-          setPreviewIndex(null);
-        } else if (previewIndex !== null && previewIndex > index) {
-          setPreviewIndex(previewIndex - 1);
-        }
       } else {
         alert(`ファイルの削除に失敗しました: ${response.errorMessage || '不明なエラー'}`);
       }
@@ -571,11 +699,6 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
       // 一時ファイルの削除
       const updatedPendingFiles = pendingFiles1.filter((_, i) => i !== actualIndex);
       setPendingFiles1(updatedPendingFiles);
-      if (previewIndex1 === index) {
-        setPreviewIndex1(null);
-      } else if (previewIndex1 !== null && previewIndex1 > index) {
-        setPreviewIndex1(previewIndex1 - 1);
-      }
       return;
     }
 
@@ -603,11 +726,6 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
           if (oldId) newIdsMap.set(i, oldId);
         });
         setFileIds1(newIdsMap);
-        if (previewIndex1 === index) {
-          setPreviewIndex1(null);
-        } else if (previewIndex1 !== null && previewIndex1 > index) {
-          setPreviewIndex1(previewIndex1 - 1);
-        }
       } else {
         alert(`ファイルの削除に失敗しました: ${response.errorMessage || '不明なエラー'}`);
       }
@@ -819,87 +937,27 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
                   <div className="mt-2 space-y-2">
                     {[...files1, ...pendingFiles1].map((file, index) => (
                       <div key={index} className="p-3 border rounded-md bg-secondary/50">
-                        {previewIndex1 === index && file.fileType.startsWith('image/') ? (
-                          <div className="space-y-2">
-                            <div className="relative w-48">
-                              <img src={file.dataUri} alt={`プレビュー ${file.fileName}`} className="w-full rounded-md border" />
-                              <div className="absolute top-1 right-1">
-                                <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={() => setPreviewIndex1(null)} title="プレビューを閉じる">
-                                  <EyeOff className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <div className="flex-1">
-                                <p className="text-sm font-medium">{file.fileName}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {file.fileType} • {(file.fileSize / 1024).toFixed(1)} KB
-                                </p>
-                              </div>
-                              <div className="flex gap-1">
-                                <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={() => handleDownloadImage1(index)} title="ファイルをダウンロード">
-                                  <Download className="h-3 w-3" />
-                                </Button>
-                                <Button type="button" variant="destructive" size="icon" className="h-6 w-6" onClick={() => handleRemoveImage1(index)} disabled={!isInfo1Editable} title="ファイルを削除">
-                                  <X className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <p className="text-sm font-medium">{file.fileName}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {file.fileType} • {(file.fileSize / 1024).toFixed(1)} KB
+                            </p>
                           </div>
-                        ) : previewIndex1 === index && file.fileType === 'application/pdf' ? (
-                          <div className="space-y-2">
-                            <div className="relative w-full h-96 border rounded-md bg-secondary/50">
-                              <iframe
-                                src={file.dataUri}
-                                className="w-full h-full rounded-md"
-                                title={`PDFプレビュー ${file.fileName}`}
-                              />
-                              <div className="absolute top-1 right-1">
-                                <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={() => setPreviewIndex1(null)} title="プレビューを閉じる">
-                                  <EyeOff className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <div className="flex-1">
-                                <p className="text-sm font-medium">{file.fileName}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {file.fileType} • {(file.fileSize / 1024).toFixed(1)} KB
-                                </p>
-                              </div>
-                              <div className="flex gap-1">
-                                <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={() => handleDownloadImage1(index)} title="ファイルをダウンロード">
-                                  <Download className="h-3 w-3" />
-                                </Button>
-                                <Button type="button" variant="destructive" size="icon" className="h-6 w-6" onClick={() => handleRemoveImage1(index)} disabled={!isInfo1Editable} title="ファイルを削除">
-                                  <X className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <p className="text-sm font-medium">{file.fileName}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {file.fileType} • {(file.fileSize / 1024).toFixed(1)} KB
-                              </p>
-                            </div>
-                            <div className="flex gap-1">
-                              {(file.fileType.startsWith('image/') || file.fileType === 'application/pdf') && (
-                                <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={() => setPreviewIndex1(index)} title="プレビューを表示">
-                                  <Eye className="h-3 w-3" />
-                                </Button>
-                              )}
-                              <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={() => handleDownloadImage1(index)} title="ファイルをダウンロード">
-                                <Download className="h-3 w-3" />
+                          <div className="flex gap-1">
+                            {(file.fileType.startsWith('image/') || file.fileType === 'application/pdf') && (
+                              <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={() => openPreviewWindow(file)} title="プレビューを表示（別ウインドウ）">
+                                <Eye className="h-3 w-3" />
                               </Button>
-                              <Button type="button" variant="destructive" size="icon" className="h-6 w-6" onClick={() => handleRemoveImage1(index)} disabled={!isInfo1Editable} title="ファイルを削除">
-                                <X className="h-3 w-3" />
-                              </Button>
-                            </div>
+                            )}
+                            <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={() => handleDownloadImage1(index)} title="ファイルをダウンロード">
+                              <Download className="h-3 w-3" />
+                            </Button>
+                            <Button type="button" variant="destructive" size="icon" className="h-6 w-6" onClick={() => handleRemoveImage1(index)} disabled={!isInfo1Editable} title="ファイルを削除">
+                              <X className="h-3 w-3" />
+                            </Button>
                           </div>
-                        )}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1031,87 +1089,27 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
                     <div className="mt-2 space-y-2">
                       {[...files, ...pendingFiles].map((file, index) => (
                         <div key={index} className="p-3 border rounded-md bg-secondary/50">
-                          {previewIndex === index && file.fileType.startsWith('image/') ? (
-                            <div className="space-y-2">
-                              <div className="relative w-48">
-                                <img src={file.dataUri} alt={`プレビュー ${file.fileName}`} className="w-full rounded-md border" />
-                                <div className="absolute top-1 right-1">
-                                  <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={() => setPreviewIndex(null)} title="プレビューを閉じる">
-                                    <EyeOff className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              </div>
-                              <div className="flex items-center justify-between">
-                                <div className="flex-1">
-                                  <p className="text-sm font-medium">{file.fileName}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {file.fileType} • {(file.fileSize / 1024).toFixed(1)} KB
-                                  </p>
-                                </div>
-                                <div className="flex gap-1">
-                                  <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={() => handleDownloadImage(index)} title="ファイルをダウンロード">
-                                    <Download className="h-3 w-3" />
-                                  </Button>
-                                  <Button type="button" variant="destructive" size="icon" className="h-6 w-6" onClick={() => handleRemoveImage(index)} disabled={!isInfo2Editable} title="ファイルを削除">
-                                    <X className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              </div>
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">{file.fileName}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {file.fileType} • {(file.fileSize / 1024).toFixed(1)} KB
+                              </p>
                             </div>
-                          ) : previewIndex === index && file.fileType === 'application/pdf' ? (
-                            <div className="space-y-2">
-                              <div className="relative w-full h-96 border rounded-md bg-secondary/50">
-                                <iframe
-                                  src={file.dataUri}
-                                  className="w-full h-full rounded-md"
-                                  title={`PDFプレビュー ${file.fileName}`}
-                                />
-                                <div className="absolute top-1 right-1">
-                                  <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={() => setPreviewIndex(null)} title="プレビューを閉じる">
-                                    <EyeOff className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              </div>
-                              <div className="flex items-center justify-between">
-                                <div className="flex-1">
-                                  <p className="text-sm font-medium">{file.fileName}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {file.fileType} • {(file.fileSize / 1024).toFixed(1)} KB
-                                  </p>
-                                </div>
-                                <div className="flex gap-1">
-                                  <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={() => handleDownloadImage(index)} title="ファイルをダウンロード">
-                                    <Download className="h-3 w-3" />
-                                  </Button>
-                                  <Button type="button" variant="destructive" size="icon" className="h-6 w-6" onClick={() => handleRemoveImage(index)} disabled={!isInfo2Editable} title="ファイルを削除">
-                                    <X className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex items-center justify-between">
-                              <div className="flex-1">
-                                <p className="text-sm font-medium">{file.fileName}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {file.fileType} • {(file.fileSize / 1024).toFixed(1)} KB
-                                </p>
-                              </div>
-                              <div className="flex gap-1">
-                                {(file.fileType.startsWith('image/') || file.fileType === 'application/pdf') && (
-                                  <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={() => setPreviewIndex(index)} title="プレビューを表示">
-                                    <Eye className="h-3 w-3" />
-                                  </Button>
-                                )}
-                                <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={() => handleDownloadImage(index)} title="ファイルをダウンロード">
-                                  <Download className="h-3 w-3" />
+                            <div className="flex gap-1">
+                              {(file.fileType.startsWith('image/') || file.fileType === 'application/pdf') && (
+                                <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={() => openPreviewWindow(file)} title="プレビューを表示（別ウインドウ）">
+                                  <Eye className="h-3 w-3" />
                                 </Button>
-                                <Button type="button" variant="destructive" size="icon" className="h-6 w-6" onClick={() => handleRemoveImage(index)} disabled={!isInfo2Editable} title="ファイルを削除">
-                                  <X className="h-3 w-3" />
-                                </Button>
-                              </div>
+                              )}
+                              <Button type="button" variant="secondary" size="icon" className="h-6 w-6" onClick={() => handleDownloadImage(index)} title="ファイルをダウンロード">
+                                <Download className="h-3 w-3" />
+                              </Button>
+                              <Button type="button" variant="destructive" size="icon" className="h-6 w-6" onClick={() => handleRemoveImage(index)} disabled={!isInfo2Editable} title="ファイルを削除">
+                                <X className="h-3 w-3" />
+                              </Button>
                             </div>
-                          )}
+                          </div>
                         </div>
                       ))}
                     </div>
