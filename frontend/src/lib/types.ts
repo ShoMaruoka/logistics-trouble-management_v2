@@ -1,3 +1,11 @@
+// ファイル情報の型定義
+export type FileInfo = {
+  dataUri: string;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+};
+
 export type Incident = {
   id: string;
   // 1次情報
@@ -16,13 +24,13 @@ export type Incident = {
   productCode?: string;
   quantity?: number;
   unit?: 'パレット' | 'ケース' | 'ボール' | 'ピース';
-  photoDataUri1?: string;
+  photoDataUri1?: string; // JSON文字列（FileInfo[]）または後方互換性のため単一Data URIも許容
 
   // 2次情報
   inputDate?: string; // YYYY-MM-DD
   processDescription?: string;
   cause?: string;
-  photoDataUri?: string;
+  photoDataUri?: string; // JSON文字列（FileInfo[]）または後方互換性のため単一Data URIも許容
 
   // 3次情報
   inputDate3?: string; // YYYY-MM-DD

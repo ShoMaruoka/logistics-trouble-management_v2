@@ -70,6 +70,7 @@ builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
 
 // サービスの登録
 builder.Services.AddScoped<IIncidentService, IncidentService>();
+builder.Services.AddScoped<IIncidentFileService, IncidentFileService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IMasterDataService, MasterDataService>();

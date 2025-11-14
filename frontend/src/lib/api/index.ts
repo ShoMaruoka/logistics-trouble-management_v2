@@ -25,6 +25,8 @@ export { apiClient } from './client';
 export { authApi } from './auth';
 export { masterDataApi } from './masterData';
 export { incidentsApi } from './incidents';
+export { incidentFilesApi } from './incidentFiles';
+export type { IncidentFile, CreateIncidentFileRequest } from './incidentFiles';
 
 // 便利なヘルパー関数
 export const apiHelpers = {

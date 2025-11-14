@@ -193,6 +193,26 @@ BEGIN
     PRINT 'インシデントテーブルを作成しました。';
 END
 
+-- インシデントファイル（別テーブル方式）
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[インシデントファイル]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE インシデントファイル (
+        ID INT IDENTITY(1,1) PRIMARY KEY,
+        インシデントID INT NOT NULL,
+        情報段階 INT NOT NULL, -- 1: 1次情報, 2: 2次情報
+        ファイルデータURI NVARCHAR(MAX) NOT NULL,
+        ファイル名 NVARCHAR(255) NOT NULL,
+        ファイルタイプ NVARCHAR(100) NOT NULL,
+        ファイルサイズ BIGINT NOT NULL,
+        作成日時 DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+        更新日時 DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+        FOREIGN KEY (インシデントID) REFERENCES インシデント(ID) ON DELETE CASCADE
+    );
+    CREATE INDEX IX_インシデントファイル_インシデントID ON インシデントファイル(インシデントID);
+    CREATE INDEX IX_インシデントファイル_情報段階 ON インシデントファイル(情報段階);
+    PRINT 'インシデントファイルテーブルを作成しました。';
+END
+
 -- =============================================
 -- 4. 監査・ログテーブルの作成
 -- =============================================

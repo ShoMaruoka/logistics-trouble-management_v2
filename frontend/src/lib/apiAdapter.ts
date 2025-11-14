@@ -167,7 +167,8 @@ export function convertFrontendIncidentToApiUpdateRequest(
   }
 
   if (frontendIncident.photoDataUri1 !== undefined) {
-    updateRequest.photoDataUri1 = frontendIncident.photoDataUri1;
+    // 空文字列の場合はundefinedに変換（バックエンドでnullとして扱われる）
+    updateRequest.photoDataUri1 = frontendIncident.photoDataUri1 === "" ? undefined : frontendIncident.photoDataUri1;
   }
 
   // 2次情報・3次情報のフィールド
@@ -184,7 +185,8 @@ export function convertFrontendIncidentToApiUpdateRequest(
   }
   
   if (frontendIncident.photoDataUri !== undefined) {
-    updateRequest.photoDataUri = frontendIncident.photoDataUri;
+    // 空文字列の場合はundefinedに変換（バックエンドでnullとして扱われる）
+    updateRequest.photoDataUri = frontendIncident.photoDataUri === "" ? undefined : frontendIncident.photoDataUri;
   }
   
   if (frontendIncident.inputDate3 !== undefined) {
