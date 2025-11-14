@@ -85,10 +85,16 @@ namespace LogisticsTroubleManagement.Controllers
             int incidentId,
             int fileId)
         {
-            var result = await _fileService.DeleteIncidentFileAsync(fileId);
+            var result = await _fileService.DeleteIncidentFileAsync(incidentId, fileId);
             
             if (!result.Success)
             {
+                // ファイルが見つからない場合はNotFoundを返す
+                if (result.ErrorMessage?.Contains("ファイルが見つかりません") == true)
+                {
+                    return NotFound(result);
+                }
+                
                 return BadRequest(result);
             }
 

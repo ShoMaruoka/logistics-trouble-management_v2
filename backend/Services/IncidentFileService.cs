@@ -117,24 +117,33 @@ namespace LogisticsTroubleManagement.Services
         /// <summary>
         /// インシデントファイルの削除
         /// </summary>
-        public async Task<ApiResponseDto<bool>> DeleteIncidentFileAsync(int fileId)
+        public async Task<ApiResponseDto<bool>> DeleteIncidentFileAsync(int incidentId, int fileId)
         {
             try
             {
-                var file = await _context.IncidentFiles.FindAsync(fileId);
+                // ファイルが指定されたインシデントに属しているかを検証
+                var file = await _context.IncidentFiles
+                    .FirstOrDefaultAsync(f => f.Id == fileId && f.IncidentId == incidentId);
+                
                 if (file == null)
                 {
+                    // ファイルが見つからない、または指定されたインシデントに属していない場合
+                    _logger.LogWarning("インシデントファイルの削除試行: ファイルが見つかりません。IncidentId: {IncidentId}, FileId: {FileId}", 
+                        incidentId, fileId);
                     return ApiResponseDto<bool>.ErrorResponse("ファイルが見つかりません");
                 }
 
                 _context.IncidentFiles.Remove(file);
                 await _context.SaveChangesAsync();
 
+                _logger.LogInformation("インシデントファイルを削除しました。IncidentId: {IncidentId}, FileId: {FileId}", 
+                    incidentId, fileId);
                 return ApiResponseDto<bool>.SuccessResponse(true);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "インシデントファイルの削除中にエラーが発生しました: {FileId}", fileId);
+                _logger.LogError(ex, "インシデントファイルの削除中にエラーが発生しました: IncidentId: {IncidentId}, FileId: {FileId}", 
+                    incidentId, fileId);
                 return ApiResponseDto<bool>.ErrorResponse("ファイルの削除に失敗しました");
             }
         }

@@ -57,13 +57,13 @@ namespace LogisticsTroubleManagement.Models
         /// 作成日時
         /// </summary>
         [Required]
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; }
 
         /// <summary>
         /// 更新日時
         /// </summary>
         [Required]
-        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime UpdatedAt { get; set; }
 
         /// <summary>
         /// ナビゲーションプロパティ: インシデント

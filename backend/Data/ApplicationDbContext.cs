@@ -388,5 +388,46 @@ namespace LogisticsTroubleManagement.Data
                 }
             );
         }
+
+        /// <summary>
+        /// 変更を保存する前にタイムスタンプを更新
+        /// </summary>
+        public override int SaveChanges()
+        {
+            UpdateTimestamps();
+            return base.SaveChanges();
+        }
+
+        /// <summary>
+        /// 変更を保存する前にタイムスタンプを更新（非同期）
+        /// </summary>
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            UpdateTimestamps();
+            return await base.SaveChangesAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// IncidentFileエンティティのタイムスタンプを自動更新
+        /// </summary>
+        private void UpdateTimestamps()
+        {
+            var utcNow = DateTime.UtcNow;
+
+            foreach (var entry in ChangeTracker.Entries<IncidentFile>())
+            {
+                if (entry.State == EntityState.Added)
+                {
+                    // 新規作成時: CreatedAtとUpdatedAtを設定
+                    entry.Entity.CreatedAt = utcNow;
+                    entry.Entity.UpdatedAt = utcNow;
+                }
+                else if (entry.State == EntityState.Modified)
+                {
+                    // 更新時: UpdatedAtのみを更新
+                    entry.Entity.UpdatedAt = utcNow;
+                }
+            }
+        }
     }
 }

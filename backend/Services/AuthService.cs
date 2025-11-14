@@ -185,9 +185,16 @@ namespace LogisticsTroubleManagement.Services
         /// <summary>
         /// JWT秘密鍵の取得
         /// </summary>
+        /// <exception cref="InvalidOperationException">JWTシークレットが設定されていない場合</exception>
         private string GetJwtSecret()
         {
-            return _configuration["Jwt:Secret"] ?? "YourSuperSecretKeyThatIsAtLeast32CharactersLong!";
+            var secret = _configuration["Jwt:Secret"];
+            if (string.IsNullOrWhiteSpace(secret))
+            {
+                _logger.LogError("JWTシークレットが設定されていません。設定ファイルまたは環境変数（JWT__SECRET）にJwt:Secretを設定してください。");
+                throw new InvalidOperationException("JWTシークレットが設定されていません。アプリケーションの起動時に設定を確認してください。");
+            }
+            return secret;
         }
 
         /// <summary>

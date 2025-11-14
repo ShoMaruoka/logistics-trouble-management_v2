@@ -152,6 +152,20 @@ const serializeFileArray = (files: FileInfo[]): string => {
   return JSON.stringify(files);
 };
 
+// HTMLエスケープ関数（XSS対策）
+const escapeHtml = (text: string): string => {
+  const map: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#x27;',
+    '/': '&#x2F;',
+    '`': '&#x60;',
+  };
+  return text.replace(/[&<>"'/`]/g, (char) => map[char] || char);
+};
+
 // 別ウインドウでプレビューを表示するヘルパー関数
 const openPreviewWindow = (file: FileInfo) => {
   const width = 1200;
@@ -176,7 +190,7 @@ const openPreviewWindow = (file: FileInfo) => {
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>プレビュー: ${file.fileName}</title>
+        <title>プレビュー: ${escapeHtml(file.fileName)}</title>
         <style>
           * {
             margin: 0;
@@ -208,7 +222,7 @@ const openPreviewWindow = (file: FileInfo) => {
       </head>
       <body>
         <div class="preview-container">
-          <img src="${file.dataUri}" alt="${file.fileName}" />
+          <img src="${file.dataUri}" alt="${escapeHtml(file.fileName)}" />
         </div>
       </body>
       </html>
@@ -221,7 +235,7 @@ const openPreviewWindow = (file: FileInfo) => {
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>プレビュー: ${file.fileName}</title>
+        <title>プレビュー: ${escapeHtml(file.fileName)}</title>
         <style>
           * {
             margin: 0;
@@ -242,7 +256,7 @@ const openPreviewWindow = (file: FileInfo) => {
         </style>
       </head>
       <body>
-        <iframe src="${file.dataUri}" title="${file.fileName}"></iframe>
+        <iframe src="${file.dataUri}" title="${escapeHtml(file.fileName)}"></iframe>
       </body>
       </html>
     `;
@@ -254,7 +268,7 @@ const openPreviewWindow = (file: FileInfo) => {
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>プレビュー: ${file.fileName}</title>
+        <title>プレビュー: ${escapeHtml(file.fileName)}</title>
         <style>
           * {
             margin: 0;
@@ -489,6 +503,24 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
     const fileList = event.target.files;
     if (!fileList || fileList.length === 0) return;
 
+    // ファイルサイズチェック（10MB = 10,485,760 bytes）
+    const MAX_FILE_SIZE = 10_485_760;
+    const oversizedFiles: string[] = [];
+    Array.from(fileList).forEach((file) => {
+      if (file.size > MAX_FILE_SIZE) {
+        oversizedFiles.push(file.name);
+      }
+    });
+
+    if (oversizedFiles.length > 0) {
+      const fileSizeInMB = (MAX_FILE_SIZE / (1024 * 1024)).toFixed(1);
+      alert(`以下のファイルが${fileSizeInMB}MBを超えています:\n${oversizedFiles.join('\n')}\n\nファイルサイズは${fileSizeInMB}MB以下である必要があります。`);
+      // ファイル入力のリセット
+      const fileInput = document.getElementById('photo-upload') as HTMLInputElement | null;
+      if (fileInput) fileInput.value = '';
+      return;
+    }
+
     try {
       // Promiseでファイル読み込みを待機
       const filePromises = Array.from(fileList).map((file) => {
@@ -630,6 +662,24 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
   const handleImageChange1 = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = event.target.files;
     if (!fileList || fileList.length === 0) return;
+
+    // ファイルサイズチェック（10MB = 10,485,760 bytes）
+    const MAX_FILE_SIZE = 10_485_760;
+    const oversizedFiles: string[] = [];
+    Array.from(fileList).forEach((file) => {
+      if (file.size > MAX_FILE_SIZE) {
+        oversizedFiles.push(file.name);
+      }
+    });
+
+    if (oversizedFiles.length > 0) {
+      const fileSizeInMB = (MAX_FILE_SIZE / (1024 * 1024)).toFixed(1);
+      alert(`以下のファイルが${fileSizeInMB}MBを超えています:\n${oversizedFiles.join('\n')}\n\nファイルサイズは${fileSizeInMB}MB以下である必要があります。`);
+      // ファイル入力のリセット
+      const fileInput = document.getElementById('photo-upload-1') as HTMLInputElement | null;
+      if (fileInput) fileInput.value = '';
+      return;
+    }
 
     try {
       // Promiseでファイル読み込みを待機

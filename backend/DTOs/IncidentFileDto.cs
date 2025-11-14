@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using LogisticsTroubleManagement.Attributes;
 
 namespace LogisticsTroubleManagement.DTOs
 {
@@ -32,12 +33,21 @@ namespace LogisticsTroubleManagement.DTOs
         /// </summary>
         [Required]
         [MaxLength(100)]
+        [AllowedFileTypes(
+            "image/png",
+            "image/jpeg",
+            "image/jpg",
+            "image/gif",
+            "image/webp",
+            "application/pdf"
+        )]
         public string FileType { get; set; } = string.Empty;
 
         /// <summary>
         /// ファイルサイズ（バイト）
         /// </summary>
         [Required]
+        [MaxFileSize(10_485_760)] // 10MB = 10,485,760 bytes
         public long FileSize { get; set; }
     }
 

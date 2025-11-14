@@ -26,9 +26,10 @@ namespace LogisticsTroubleManagement.Services
         /// <summary>
         /// インシデントファイルの削除
         /// </summary>
+        /// <param name="incidentId">インシデントID</param>
         /// <param name="fileId">ファイルID</param>
         /// <returns>削除結果</returns>
-        Task<ApiResponseDto<bool>> DeleteIncidentFileAsync(int fileId);
+        Task<ApiResponseDto<bool>> DeleteIncidentFileAsync(int incidentId, int fileId);
     }
 }
 
