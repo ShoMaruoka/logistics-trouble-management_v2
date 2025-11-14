@@ -31,6 +31,7 @@ export function convertApiIncidentToFrontend(apiIncident: IncidentResponse, mast
     productCode: apiIncident.productCode,
     quantity: apiIncident.quantity,
     unit: (convertIdToName(apiIncident.unit, masterData?.units) || convertIdToUnitName(apiIncident.unit)) as Incident['unit'],
+    photoDataUri1: apiIncident.photoDataUri1,
     inputDate: apiIncident.inputDate?.split('T')[0],
     processDescription: apiIncident.processDescription,
     cause: apiIncident.cause,
@@ -79,6 +80,7 @@ export function convertFrontendIncidentToApiRequest(
     productCode: frontendIncident.productCode,
     quantity: frontendIncident.quantity,
     unit: frontendIncident.unit ? (convertNameToId(frontendIncident.unit, masterData?.units) ?? convertUnitNameToId(frontendIncident.unit, masterData)) : undefined,
+    photoDataUri1: frontendIncident.photoDataUri1,
   };
 }
 
@@ -163,7 +165,12 @@ export function convertFrontendIncidentToApiUpdateRequest(
     updateRequest.unit = convertNameToId(frontendIncident.unit, masterData?.units) 
       ?? convertUnitNameToId(frontendIncident.unit, masterData);
   }
-  
+
+  if (frontendIncident.photoDataUri1 !== undefined) {
+    // 空文字列の場合はundefinedに変換（バックエンドでnullとして扱われる）
+    updateRequest.photoDataUri1 = frontendIncident.photoDataUri1 === "" ? undefined : frontendIncident.photoDataUri1;
+  }
+
   // 2次情報・3次情報のフィールド
   if (frontendIncident.inputDate !== undefined) {
     updateRequest.inputDate = frontendIncident.inputDate;
@@ -178,7 +185,8 @@ export function convertFrontendIncidentToApiUpdateRequest(
   }
   
   if (frontendIncident.photoDataUri !== undefined) {
-    updateRequest.photoDataUri = frontendIncident.photoDataUri;
+    // 空文字列の場合はundefinedに変換（バックエンドでnullとして扱われる）
+    updateRequest.photoDataUri = frontendIncident.photoDataUri === "" ? undefined : frontendIncident.photoDataUri;
   }
   
   if (frontendIncident.inputDate3 !== undefined) {

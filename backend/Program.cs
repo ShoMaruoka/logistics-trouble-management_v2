@@ -70,6 +70,7 @@ builder.Services.AddAutoMapper(typeof(AutoMapperProfile));
 
 // サービスの登録
 builder.Services.AddScoped<IIncidentService, IncidentService>();
+builder.Services.AddScoped<IIncidentFileService, IncidentFileService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IMasterDataService, MasterDataService>();
@@ -80,9 +81,30 @@ builder.Services.AddScoped<IIncidentStatusCalculationService, IncidentStatusCalc
 builder.Services.AddMemoryCache();
 
 // JWT認証の設定
+// JWTシークレットは設定ファイル（appsettings.json）または環境変数（JWT__SECRET）から読み込む必要があります
+// 本番環境では、シークレットマネージャー（Azure Key Vault、AWS Secrets Manager等）の使用を推奨します
 var jwtSettings = builder.Configuration.GetSection("Jwt");
-var secretKey = jwtSettings["Secret"] ?? "YourSuperSecretKeyThatIsAtLeast32CharactersLong!";
+var secretKey = jwtSettings["Secret"];
+
+// JWTシークレットの必須チェックとバリデーション
+if (string.IsNullOrWhiteSpace(secretKey))
+{
+    var errorMessage = "JWTシークレットが設定されていません。設定ファイル（appsettings.json）または環境変数（JWT__SECRET）にJwt:Secretを設定してください。";
+    Log.Fatal(errorMessage);
+    throw new InvalidOperationException(errorMessage);
+}
+
+// シークレットの最小長チェック（推奨: 32文字以上、より安全な64文字以上を推奨）
+const int minimumSecretLength = 32;
+if (secretKey.Length < minimumSecretLength)
+{
+    var errorMessage = $"JWTシークレットが短すぎます。最小長は{minimumSecretLength}文字です。現在の長さ: {secretKey.Length}文字";
+    Log.Fatal(errorMessage);
+    throw new InvalidOperationException(errorMessage);
+}
+
 var key = Encoding.ASCII.GetBytes(secretKey);
+Log.Information("JWT認証の設定が完了しました（シークレット長: {Length}文字）", secretKey.Length);
 
 builder.Services.AddAuthentication(options =>
 {
@@ -110,13 +132,46 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 
 // CORSの設定
+var corsSection = builder.Configuration.GetSection("Cors");
+var allowedOrigins = corsSection.GetSection("AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+var allowedMethods = corsSection.GetSection("AllowedMethods").Get<string[]>() ?? new[] { "GET", "POST", "PUT", "DELETE", "OPTIONS" };
+var allowedHeaders = corsSection.GetSection("AllowedHeaders").Get<string[]>() ?? new[] { "Content-Type", "Authorization", "X-Requested-With" };
+var allowCredentials = corsSection.GetValue<bool>("AllowCredentials", false);
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
+    // 開発環境用の許可的なポリシー
+    if (builder.Environment.IsDevelopment())
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        options.AddPolicy("Development", policy =>
+        {
+            policy.AllowAnyOrigin()
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        });
+    }
+    
+    // 本番環境用の厳格なポリシー
+    options.AddPolicy("Production", policy =>
+    {
+        if (allowedOrigins.Length > 0)
+        {
+            policy.WithOrigins(allowedOrigins)
+                  .WithMethods(allowedMethods)
+                  .WithHeaders(allowedHeaders);
+            
+            if (allowCredentials)
+            {
+                policy.AllowCredentials();
+            }
+        }
+        else
+        {
+            // フォールバック: 設定がない場合は開発環境と同じ設定
+            policy.AllowAnyOrigin()
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        }
     });
 });
 
@@ -140,7 +195,17 @@ if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("EnableS
 // ミドルウェアの設定
 app.UseSerilogRequestLogging();
 app.UseHttpsRedirection();
-app.UseCors("AllowAll");
+
+// CORSポリシーの適用（環境に応じて）
+if (app.Environment.IsDevelopment())
+{
+    app.UseCors("Development");
+}
+else
+{
+    app.UseCors("Production");
+}
+
 app.UseAuthentication();
 app.UseAuthorization();
 

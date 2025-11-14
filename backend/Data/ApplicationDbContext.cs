@@ -18,6 +18,11 @@ namespace LogisticsTroubleManagement.Data
         public DbSet<Incident> Incidents { get; set; }
 
         /// <summary>
+        /// インシデントファイル
+        /// </summary>
+        public DbSet<IncidentFile> IncidentFiles { get; set; }
+
+        /// <summary>
         /// ユーザー
         /// </summary>
         public DbSet<User> Users { get; set; }
@@ -94,6 +99,7 @@ namespace LogisticsTroubleManagement.Data
                 entity.Property(e => e.ProductCode).HasColumnName("商品コード").HasMaxLength(50);
                 entity.Property(e => e.Quantity).HasColumnName("数量").HasPrecision(18, 2);
                 entity.Property(e => e.Unit).HasColumnName("単位ID").HasMaxLength(20);
+                entity.Property(e => e.PhotoDataUri1).HasColumnName("1次情報写真データURI").HasMaxLength(1000000);
                 entity.Property(e => e.InputDate).HasColumnName("2次情報入力日");
                 entity.Property(e => e.ProcessDescription).HasColumnName("発生経緯").HasMaxLength(2000);
                 entity.Property(e => e.Cause).HasColumnName("発生原因").HasMaxLength(2000);
@@ -321,6 +327,34 @@ namespace LogisticsTroubleManagement.Data
                 entity.HasIndex(e => e.ParameterKey).IsUnique();
             });
 
+            // IncidentFile エンティティの設定
+            modelBuilder.Entity<IncidentFile>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                
+                // テーブル名とカラム名のマッピング
+                entity.ToTable("インシデントファイル");
+                entity.Property(e => e.Id).HasColumnName("ID");
+                entity.Property(e => e.IncidentId).HasColumnName("インシデントID").IsRequired();
+                entity.Property(e => e.InfoLevel).HasColumnName("情報段階").IsRequired();
+                entity.Property(e => e.FileDataUri).HasColumnName("ファイルデータURI").IsRequired().HasColumnType("NVARCHAR(MAX)");
+                entity.Property(e => e.FileName).HasColumnName("ファイル名").IsRequired().HasMaxLength(255);
+                entity.Property(e => e.FileType).HasColumnName("ファイルタイプ").IsRequired().HasMaxLength(100);
+                entity.Property(e => e.FileSize).HasColumnName("ファイルサイズ").IsRequired();
+                entity.Property(e => e.CreatedAt).HasColumnName("作成日時").IsRequired().HasDefaultValueSql("GETUTCDATE()");
+                entity.Property(e => e.UpdatedAt).HasColumnName("更新日時").IsRequired().HasDefaultValueSql("GETUTCDATE()");
+
+                // 外部キー
+                entity.HasOne(e => e.Incident)
+                    .WithMany()
+                    .HasForeignKey(e => e.IncidentId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // インデックス
+                entity.HasIndex(e => e.IncidentId);
+                entity.HasIndex(e => e.InfoLevel);
+            });
+
                 // 初期データの投入
                 SeedData(modelBuilder);
         }
@@ -353,6 +387,47 @@ namespace LogisticsTroubleManagement.Data
                     UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
                 }
             );
+        }
+
+        /// <summary>
+        /// 変更を保存する前にタイムスタンプを更新
+        /// </summary>
+        public override int SaveChanges()
+        {
+            UpdateTimestamps();
+            return base.SaveChanges();
+        }
+
+        /// <summary>
+        /// 変更を保存する前にタイムスタンプを更新（非同期）
+        /// </summary>
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            UpdateTimestamps();
+            return await base.SaveChangesAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// IncidentFileエンティティのタイムスタンプを自動更新
+        /// </summary>
+        private void UpdateTimestamps()
+        {
+            var utcNow = DateTime.UtcNow;
+
+            foreach (var entry in ChangeTracker.Entries<IncidentFile>())
+            {
+                if (entry.State == EntityState.Added)
+                {
+                    // 新規作成時: CreatedAtとUpdatedAtを設定
+                    entry.Entity.CreatedAt = utcNow;
+                    entry.Entity.UpdatedAt = utcNow;
+                }
+                else if (entry.State == EntityState.Modified)
+                {
+                    // 更新時: UpdatedAtのみを更新
+                    entry.Entity.UpdatedAt = utcNow;
+                }
+            }
         }
     }
 }

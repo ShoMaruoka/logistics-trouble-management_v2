@@ -33,7 +33,7 @@ import { updateIncidentStatus, createInitialIncidents, troubleDetailCategories, 
 // import { suggestIncidentDetails } from "@/app/actions";
 import { useToast } from "@/hooks/use-toast";
 import { useApi, useAuth, useMasterData } from "@/hooks/useApi";
-import { incidentsApi } from "@/lib/api";
+import { incidentsApi, incidentFilesApi } from "@/lib/api";
 import { convertApiIncidentToFrontend, convertFrontendIncidentToApiUpdateRequest, convertFrontendIncidentToApiCreateRequest } from "@/lib/apiAdapter";
 import { LoginForm } from "@/components/login-form";
 import { MasterDataManagement } from "@/components/master-data-management";
@@ -189,7 +189,83 @@ export default function Home() {
     setIsDialogOpen(true);
   }
 
-  const handleSaveIncident = async (data: Partial<Omit<Incident, 'id'>>, infoLevel: 1 | 2 | 3) => {
+  /**
+   * インシデントファイルを並列アップロードする共通ヘルパー関数
+   * @param incidentId インシデントID
+   * @param pendingFiles アップロードする一時ファイル（files1: infoLevel 1, files: infoLevel 2）
+   * @returns すべてのファイルのアップロードが成功した場合true、それ以外はfalse
+   */
+  const uploadIncidentFiles = async (
+    incidentId: number,
+    pendingFiles: { files1: Array<{ dataUri: string; fileName: string; fileType: string; fileSize: number }>, files: Array<{ dataUri: string; fileName: string; fileType: string; fileSize: number }> }
+  ): Promise<boolean> => {
+    // 1次情報（infoLevel 1）と2次情報（infoLevel 2）のファイルを1つの配列にまとめる
+    const uploadPromises: Promise<{ success: boolean; fileName: string; errorMessage?: string }>[] = [];
+
+    // 1次情報のファイルをアップロード用のPromise配列に追加
+    for (const fileInfo of pendingFiles.files1) {
+      uploadPromises.push(
+        incidentFilesApi.createIncidentFile(incidentId, {
+          infoLevel: 1,
+          fileDataUri: fileInfo.dataUri,
+          fileName: fileInfo.fileName,
+          fileType: fileInfo.fileType,
+          fileSize: fileInfo.fileSize
+        }).then(response => ({
+          success: response.success,
+          fileName: fileInfo.fileName,
+          errorMessage: response.errorMessage
+        })).catch(error => ({
+          success: false,
+          fileName: fileInfo.fileName,
+          errorMessage: error instanceof Error ? error.message : String(error)
+        }))
+      );
+    }
+
+    // 2次情報のファイルをアップロード用のPromise配列に追加
+    for (const fileInfo of pendingFiles.files) {
+      uploadPromises.push(
+        incidentFilesApi.createIncidentFile(incidentId, {
+          infoLevel: 2,
+          fileDataUri: fileInfo.dataUri,
+          fileName: fileInfo.fileName,
+          fileType: fileInfo.fileType,
+          fileSize: fileInfo.fileSize
+        }).then(response => ({
+          success: response.success,
+          fileName: fileInfo.fileName,
+          errorMessage: response.errorMessage
+        })).catch(error => ({
+          success: false,
+          fileName: fileInfo.fileName,
+          errorMessage: error instanceof Error ? error.message : String(error)
+        }))
+      );
+    }
+
+    // すべてのアップロードを並列実行
+    const results = await Promise.allSettled(uploadPromises);
+
+    // 結果を検査して、ファイルごとの成功/失敗をログに記録
+    let allSuccess = true;
+    results.forEach((result) => {
+      if (result.status === 'fulfilled') {
+        const fileResult = result.value;
+        if (!fileResult.success) {
+          allSuccess = false;
+          console.error(`ファイル「${fileResult.fileName}」のアップロードに失敗しました:`, fileResult.errorMessage);
+        }
+      } else {
+        allSuccess = false;
+        console.error(`ファイルアップロード中にエラーが発生しました:`, result.reason);
+      }
+    });
+
+    return allSuccess;
+  };
+
+  const handleSaveIncident = async (data: Partial<Omit<Incident, 'id'>>, infoLevel: 1 | 2 | 3, pendingFiles?: { files1: Array<{ dataUri: string; fileName: string; fileType: string; fileSize: number }>, files: Array<{ dataUri: string; fileName: string; fileType: string; fileSize: number }> }) => {
     try {
       const todayStr = format(new Date(), 'yyyy-MM-dd');
       
@@ -216,6 +292,7 @@ export default function Home() {
             productCode: data.productCode,
             quantity: data.quantity,
             unit: data.unit,
+            photoDataUri1: data.photoDataUri1,
           };
         } else if (infoLevel === 2) {
           // 2次情報の更新時は、2次情報のフィールドのみ送信
@@ -237,7 +314,30 @@ export default function Home() {
 
         // フロントエンド型をAPI型に変換
         const apiUpdateData = convertFrontendIncidentToApiUpdateRequest(updateData, masterData);
+        console.log('Sending update data:', JSON.stringify(apiUpdateData, null, 2));
+        console.log('photoDataUri1 length:', apiUpdateData.photoDataUri1?.length || 0);
         await incidentsApi.updateIncident(parseInt(editingIncident.id), apiUpdateData);
+        
+        // 一時ファイルがあればアップロード
+        if (pendingFiles && editingIncident.id) {
+          try {
+            const uploadSuccess = await uploadIncidentFiles(parseInt(editingIncident.id), pendingFiles);
+            if (!uploadSuccess) {
+              toast({
+                title: "警告",
+                description: "インシデントは更新されましたが、一部のファイルのアップロードに失敗しました。",
+                variant: "destructive",
+              });
+            }
+          } catch (error) {
+            console.error('一時ファイルのアップロードに失敗しました:', error);
+            toast({
+              title: "警告",
+              description: "インシデントは更新されましたが、一部のファイルのアップロードに失敗しました。",
+              variant: "destructive",
+            });
+          }
+        }
         
         // ステータスは動的に計算されるため、直接的な更新は不要
         
@@ -258,6 +358,27 @@ export default function Home() {
         
         const createdIncident = await incidentsApi.createIncident(apiCreateData);
         console.log('Created incident:', createdIncident);
+        
+        // 一時ファイルがあればアップロード
+        if (pendingFiles && createdIncident.id) {
+          try {
+            const uploadSuccess = await uploadIncidentFiles(createdIncident.id, pendingFiles);
+            if (!uploadSuccess) {
+              toast({
+                title: "警告",
+                description: "インシデントは作成されましたが、一部のファイルのアップロードに失敗しました。",
+                variant: "destructive",
+              });
+            }
+          } catch (error) {
+            console.error('一時ファイルのアップロードに失敗しました:', error);
+            toast({
+              title: "警告",
+              description: "インシデントは作成されましたが、一部のファイルのアップロードに失敗しました。",
+              variant: "destructive",
+            });
+          }
+        }
         
         toast({
           title: "インシデントを作成しました",

@@ -178,6 +178,7 @@ BEGIN
         商品コード NVARCHAR(50),
         数量 DECIMAL(18,2),
         単位ID INT,
+        1次情報写真データURI NVARCHAR(MAX),
         "2次情報入力日" DATE,
         発生経緯 NVARCHAR(MAX),
         発生原因 NVARCHAR(MAX),
@@ -190,6 +191,26 @@ BEGIN
         更新者 INT NOT NULL
     );
     PRINT 'インシデントテーブルを作成しました。';
+END
+
+-- インシデントファイル（別テーブル方式）
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[インシデントファイル]') AND type in (N'U'))
+BEGIN
+    CREATE TABLE インシデントファイル (
+        ID INT IDENTITY(1,1) PRIMARY KEY,
+        インシデントID INT NOT NULL,
+        情報段階 INT NOT NULL, -- 1: 1次情報, 2: 2次情報
+        ファイルデータURI NVARCHAR(MAX) NOT NULL,
+        ファイル名 NVARCHAR(255) NOT NULL,
+        ファイルタイプ NVARCHAR(100) NOT NULL,
+        ファイルサイズ BIGINT NOT NULL,
+        作成日時 DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+        更新日時 DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+        FOREIGN KEY (インシデントID) REFERENCES インシデント(ID) ON DELETE CASCADE
+    );
+    CREATE INDEX IX_インシデントファイル_インシデントID ON インシデントファイル(インシデントID);
+    CREATE INDEX IX_インシデントファイル_情報段階 ON インシデントファイル(情報段階);
+    PRINT 'インシデントファイルテーブルを作成しました。';
 END
 
 -- =============================================

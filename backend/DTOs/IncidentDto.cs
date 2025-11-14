@@ -96,6 +96,12 @@ namespace LogisticsTroubleManagement.DTOs
         /// 単位ID
         /// </summary>
         public int? Unit { get; set; }
+
+        /// <summary>
+        /// 1次情報写真データURI
+        /// </summary>
+        [MaxLength(1000000)]
+        public string? PhotoDataUri1 { get; set; }
     }
 
     /// <summary>
@@ -182,6 +188,12 @@ namespace LogisticsTroubleManagement.DTOs
         /// 単位ID
         /// </summary>
         public int? Unit { get; set; }
+
+        /// <summary>
+        /// 1次情報写真データURI
+        /// </summary>
+        [MaxLength(1000000)]
+        public string? PhotoDataUri1 { get; set; }
 
         // 2次情報
         /// <summary>
@@ -305,6 +317,11 @@ namespace LogisticsTroubleManagement.DTOs
         /// 単位ID
         /// </summary>
         public int? Unit { get; set; }
+
+        /// <summary>
+        /// 1次情報写真データURI
+        /// </summary>
+        public string? PhotoDataUri1 { get; set; }
 
         // 2次情報
         /// <summary>
