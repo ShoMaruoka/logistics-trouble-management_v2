@@ -28,18 +28,11 @@ export class MasterDataApi {
    */
   async getAllMasterData(): Promise<MasterDataResponse> {
     try {
-      // 個別のエンドポイントからデータを取得
-      const [
-        organizations,
-        occurrenceLocations,
-        shippingWarehouses,
-        shippingCompanies,
-        troubleCategories,
-        troubleDetailCategories,
-        userRoles,
-        units,
-        systemParameters
-      ] = await Promise.all([
+      // 個別のエンドポイントからデータを取得（Promise.allSettledを使用してエラー詳細を取得）
+      const itemNames = ['organizations', 'occurrenceLocations', 'shippingWarehouses', 'shippingCompanies', 
+                        'troubleCategories', 'troubleDetailCategories', 'userRoles', 'units', 'systemParameters'];
+      
+      const results = await Promise.allSettled([
         this._getOrganizations(),
         this._getOccurrenceLocations(),
         this._getWarehouses(),
@@ -51,19 +44,53 @@ export class MasterDataApi {
         this._getSystemParameters()
       ]);
 
+      // エラーが発生した項目を確認
+      const errors: string[] = [];
+      const data: any = {};
+
+      results.forEach((result, index) => {
+        const itemName = itemNames[index];
+        
+        if (result.status === 'fulfilled') {
+          data[itemName] = result.value;
+        } else {
+          const errorMessage = result.reason instanceof Error 
+            ? result.reason.message 
+            : String(result.reason);
+          errors.push(`${itemName}: ${errorMessage}`);
+          console.error(`マスターデータ「${itemName}」の取得に失敗しました:`, result.reason);
+          // エラーが発生した項目は空配列を設定
+          data[itemName] = [];
+        }
+      });
+
+      // エラーが発生した場合は、詳細なエラーメッセージを投げる
+      if (errors.length > 0) {
+        const errorDetails = errors.join('; ');
+        console.error('マスターデータ取得エラー詳細:', errorDetails);
+        throw new Error(`マスターデータの取得に失敗しました: ${errorDetails}`);
+      }
+
       return {
-        organizations,
-        occurrenceLocations,
-        shippingWarehouses,
-        shippingCompanies,
-        troubleCategories,
-        troubleDetailCategories,
-        userRoles,
-        units,
-        systemParameters
+        organizations: data.organizations,
+        occurrenceLocations: data.occurrenceLocations,
+        shippingWarehouses: data.shippingWarehouses,
+        shippingCompanies: data.shippingCompanies,
+        troubleCategories: data.troubleCategories,
+        troubleDetailCategories: data.troubleDetailCategories,
+        userRoles: data.userRoles,
+        units: data.units,
+        systemParameters: data.systemParameters
       };
     } catch (error) {
-      throw new Error('マスターデータの取得に失敗しました');
+      // エラーが既に詳細なメッセージを持っている場合はそのまま投げる
+      if (error instanceof Error && error.message.includes('マスターデータの取得に失敗しました:')) {
+        throw error;
+      }
+      // それ以外の場合は詳細を追加
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('マスターデータ取得エラー:', error);
+      throw new Error(`マスターデータの取得に失敗しました: ${errorMessage}`);
     }
   }
 
@@ -71,15 +98,21 @@ export class MasterDataApi {
    * 組織一覧を取得（プライベート）
    */
   private async _getOrganizations(): Promise<MasterDataItem[]> {
-    const response = await apiClient.get<ApiResponse<MasterDataItem[]>>(
-      API_CONFIG.ENDPOINTS.MASTER_DATA.ORGANIZATIONS
-    );
+    try {
+      const response = await apiClient.get<ApiResponse<MasterDataItem[]>>(
+        API_CONFIG.ENDPOINTS.MASTER_DATA.ORGANIZATIONS
+      );
 
-    if (!response.success || !response.data) {
-      throw new Error(response.errorMessage || '組織データの取得に失敗しました');
+      if (!response.success || !response.data) {
+        throw new Error(response.errorMessage || '組織データの取得に失敗しました');
+      }
+
+      return response.data;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('組織データ取得エラー:', error);
+      throw new Error(`組織データの取得に失敗しました: ${errorMessage}`);
     }
-
-    return response.data;
   }
 
   /**
@@ -107,15 +140,21 @@ export class MasterDataApi {
    * 発生場所一覧を取得（プライベート）
    */
   private async _getOccurrenceLocations(): Promise<MasterDataItem[]> {
-    const response = await apiClient.get<ApiResponse<MasterDataItem[]>>(
-      API_CONFIG.ENDPOINTS.MASTER_DATA.OCCURRENCE_LOCATIONS
-    );
+    try {
+      const response = await apiClient.get<ApiResponse<MasterDataItem[]>>(
+        API_CONFIG.ENDPOINTS.MASTER_DATA.OCCURRENCE_LOCATIONS
+      );
 
-    if (!response.success || !response.data) {
-      throw new Error(response.errorMessage || '発生場所データの取得に失敗しました');
+      if (!response.success || !response.data) {
+        throw new Error(response.errorMessage || '発生場所データの取得に失敗しました');
+      }
+
+      return response.data;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('発生場所データ取得エラー:', error);
+      throw new Error(`発生場所データの取得に失敗しました: ${errorMessage}`);
     }
-
-    return response.data;
   }
 
   /**
@@ -143,15 +182,21 @@ export class MasterDataApi {
    * 倉庫一覧を取得（プライベート）
    */
   private async _getWarehouses(): Promise<MasterDataItem[]> {
-    const response = await apiClient.get<ApiResponse<MasterDataItem[]>>(
-      API_CONFIG.ENDPOINTS.MASTER_DATA.WAREHOUSES
-    );
+    try {
+      const response = await apiClient.get<ApiResponse<MasterDataItem[]>>(
+        API_CONFIG.ENDPOINTS.MASTER_DATA.WAREHOUSES
+      );
 
-    if (!response.success || !response.data) {
-      throw new Error(response.errorMessage || '倉庫データの取得に失敗しました');
+      if (!response.success || !response.data) {
+        throw new Error(response.errorMessage || '倉庫データの取得に失敗しました');
+      }
+
+      return response.data;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('倉庫データ取得エラー:', error);
+      throw new Error(`倉庫データの取得に失敗しました: ${errorMessage}`);
     }
-
-    return response.data;
   }
 
   /**
@@ -173,90 +218,126 @@ export class MasterDataApi {
    * 運送会社一覧を取得（プライベート）
    */
   private async _getShippingCompanies(): Promise<MasterDataItem[]> {
-    const response = await apiClient.get<ApiResponse<MasterDataItem[]>>(
-      API_CONFIG.ENDPOINTS.MASTER_DATA.SHIPPING_COMPANIES
-    );
+    try {
+      const response = await apiClient.get<ApiResponse<MasterDataItem[]>>(
+        API_CONFIG.ENDPOINTS.MASTER_DATA.SHIPPING_COMPANIES
+      );
 
-    if (!response.success || !response.data) {
-      throw new Error(response.errorMessage || '運送会社データの取得に失敗しました');
+      if (!response.success || !response.data) {
+        throw new Error(response.errorMessage || '運送会社データの取得に失敗しました');
+      }
+
+      return response.data;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('運送会社データ取得エラー:', error);
+      throw new Error(`運送会社データの取得に失敗しました: ${errorMessage}`);
     }
-
-    return response.data;
   }
 
   /**
    * トラブル区分一覧を取得（プライベート）
    */
   private async _getTroubleCategories(): Promise<MasterDataItem[]> {
-    const response = await apiClient.get<ApiResponse<MasterDataItem[]>>(
-      API_CONFIG.ENDPOINTS.MASTER_DATA.TROUBLE_CATEGORIES
-    );
+    try {
+      const response = await apiClient.get<ApiResponse<MasterDataItem[]>>(
+        API_CONFIG.ENDPOINTS.MASTER_DATA.TROUBLE_CATEGORIES
+      );
 
-    if (!response.success || !response.data) {
-      throw new Error(response.errorMessage || 'トラブル区分データの取得に失敗しました');
+      if (!response.success || !response.data) {
+        throw new Error(response.errorMessage || 'トラブル区分データの取得に失敗しました');
+      }
+
+      return response.data;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('トラブル区分データ取得エラー:', error);
+      throw new Error(`トラブル区分データの取得に失敗しました: ${errorMessage}`);
     }
-
-    return response.data;
   }
 
   /**
    * トラブル詳細区分一覧を取得（プライベート）
    */
   private async _getTroubleDetailCategories(): Promise<TroubleDetailCategoryItem[]> {
-    const response = await apiClient.get<ApiResponse<TroubleDetailCategoryItem[]>>(
-      API_CONFIG.ENDPOINTS.MASTER_DATA.TROUBLE_DETAIL_CATEGORIES
-    );
+    try {
+      const response = await apiClient.get<ApiResponse<TroubleDetailCategoryItem[]>>(
+        API_CONFIG.ENDPOINTS.MASTER_DATA.TROUBLE_DETAIL_CATEGORIES
+      );
 
-    if (!response.success || !response.data) {
-      throw new Error(response.errorMessage || 'トラブル詳細区分データの取得に失敗しました');
+      if (!response.success || !response.data) {
+        throw new Error(response.errorMessage || 'トラブル詳細区分データの取得に失敗しました');
+      }
+
+      return response.data;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('トラブル詳細区分データ取得エラー:', error);
+      throw new Error(`トラブル詳細区分データの取得に失敗しました: ${errorMessage}`);
     }
-
-    return response.data;
   }
 
   /**
    * ユーザーロール一覧を取得（プライベート）
    */
   private async _getUserRoles(): Promise<MasterDataItem[]> {
-    const response = await apiClient.get<ApiResponse<MasterDataItem[]>>(
-      API_CONFIG.ENDPOINTS.MASTER_DATA.USER_ROLES
-    );
+    try {
+      const response = await apiClient.get<ApiResponse<MasterDataItem[]>>(
+        API_CONFIG.ENDPOINTS.MASTER_DATA.USER_ROLES
+      );
 
-    if (!response.success || !response.data) {
-      throw new Error(response.errorMessage || 'ユーザーロールデータの取得に失敗しました');
+      if (!response.success || !response.data) {
+        throw new Error(response.errorMessage || 'ユーザーロールデータの取得に失敗しました');
+      }
+
+      return response.data;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('ユーザーロールデータ取得エラー:', error);
+      throw new Error(`ユーザーロールデータの取得に失敗しました: ${errorMessage}`);
     }
-
-    return response.data;
   }
 
   /**
    * 単位一覧を取得（プライベート）
    */
   private async _getUnits(): Promise<UnitItem[]> {
-    const response = await apiClient.get<ApiResponse<UnitItem[]>>(
-      API_CONFIG.ENDPOINTS.MASTER_DATA.UNITS
-    );
+    try {
+      const response = await apiClient.get<ApiResponse<UnitItem[]>>(
+        API_CONFIG.ENDPOINTS.MASTER_DATA.UNITS
+      );
 
-    if (!response.success || !response.data) {
-      throw new Error(response.errorMessage || '単位データの取得に失敗しました');
+      if (!response.success || !response.data) {
+        throw new Error(response.errorMessage || '単位データの取得に失敗しました');
+      }
+
+      return response.data;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('単位データ取得エラー:', error);
+      throw new Error(`単位データの取得に失敗しました: ${errorMessage}`);
     }
-
-    return response.data;
   }
 
   /**
    * システムパラメータ一覧を取得（プライベート）
    */
   private async _getSystemParameters(): Promise<SystemParameterItem[]> {
-    const response = await apiClient.get<ApiResponse<SystemParameterItem[]>>(
-      API_CONFIG.ENDPOINTS.MASTER_DATA.SYSTEM_PARAMETERS
-    );
+    try {
+      const response = await apiClient.get<ApiResponse<SystemParameterItem[]>>(
+        API_CONFIG.ENDPOINTS.MASTER_DATA.SYSTEM_PARAMETERS
+      );
 
-    if (!response.success || !response.data) {
-      throw new Error(response.errorMessage || 'システムパラメータデータの取得に失敗しました');
+      if (!response.success || !response.data) {
+        throw new Error(response.errorMessage || 'システムパラメータデータの取得に失敗しました');
+      }
+
+      return response.data;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('システムパラメータデータ取得エラー:', error);
+      throw new Error(`システムパラメータデータの取得に失敗しました: ${errorMessage}`);
     }
-
-    return response.data;
   }
 
   /**

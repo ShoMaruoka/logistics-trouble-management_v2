@@ -800,3 +800,107 @@ Phase 3（統合・テスト）の実施により、本格運用に向けた最�
 - [ ] 設定ファイルからの読み込みが実装されている（オプション）
 - [ ] 既存機能に影響がない
 - [ ] テストが追加されている
+
+## Phase 15: ERR_CONNECTION_RESETエラーの修正（2025年11月14日）
+
+### 目的
+本番環境でインシデント登録時に発生した`ERR_CONNECTION_RESET`エラーを修正し、システムの安定性を向上させる。
+
+### 問題箇所
+- PDFファイル「ksvol.1438.pdf」のアップロード時に`ERR_CONNECTION_RESET`エラーが発生
+- その後、インシデント取得APIへの接続もリセットされ、システムに接続できなくなった
+- ファイルアップロードが並列実行されており、大きなファイル時にサーバーリソース不足が発生
+- `requestWithRetry`関数で`fetch`のネットワークエラーが適切にキャッチされていない
+- バックエンドにリクエストサイズ制限やタイムアウト設定がない
+
+### 実装内容
+- [x] `requestWithRetry`関数の改善（`frontend/src/lib/api/client.ts`）
+  - [x] `fetch`のエラー（`ERR_CONNECTION_RESET`、`Failed to fetch`など）を適切にキャッチして`NETWORK_ERROR`として扱う
+  - [x] タイムアウト制御用の`AbortController`を追加（30秒）
+  - [x] ネットワークエラーの検出ロジックを改善
+  - [x] リトライロジックを改善（ネットワークエラー時に自動リトライ）
+- [x] ファイルアップロードの順次実行化（`frontend/src/app/page.tsx`）
+  - [x] 並列実行から順次実行に変更（サーバーリソースの保護のため）
+  - [x] ファイルごとの成功/失敗をログに記録
+  - [x] ネットワークエラー発生時も次のファイルのアップロードを続行
+- [x] バックエンドのリクエストサイズ制限とタイムアウト設定（`backend/Program.cs`）
+  - [x] Kestrelサーバーの設定でリクエストボディの最大サイズを50MBに設定
+  - [x] リクエストヘッダーの最大サイズを32KBに設定
+  - [x] リクエストのタイムアウトを5分に設定
+  - [x] Keep-Aliveタイムアウトを2分に設定
+- [x] エラーハンドリングの改善（`frontend/src/app/page.tsx`）
+  - [x] ネットワークエラーを検出して適切なエラーメッセージを表示
+  - [x] ユーザーへのエラーメッセージを明確化
+  - [x] ファイルアップロード失敗時のエラーメッセージを改善
+
+### 完了条件
+- [x] `ERR_CONNECTION_RESET`エラーが適切にキャッチされ、リトライされる
+- [x] ファイルアップロードが順次実行され、サーバーリソースが保護される
+- [x] バックエンドのリクエストサイズ制限とタイムアウト設定が追加されている
+- [x] ネットワークエラー時に適切なエラーメッセージが表示される
+- [x] リンターエラーがない
+- [x] 既存機能に影響がない
+
+## Phase 16: ログイン時のマスターデータ取得エラーの修正（2025年11月14日）
+
+### 目的
+ログイン時に発生していたマスターデータ取得エラーを修正し、システムの正常動作を確保する。
+
+### 問題箇所
+- ログイン時にすべてのマスターデータ取得が失敗
+- ネットワークタブではデータが正しく取得できているが、コンソールでエラーが発生
+- バックエンドはPascalCase（`Success`, `Data`）でレスポンスを返しているが、フロントエンドはcamelCase（`success`, `data`）を期待していた
+
+### 実装内容
+- [x] エラーハンドリングの改善（`frontend/src/lib/api/masterData.ts`）
+  - [x] `Promise.allSettled`を使用して、すべてのAPI呼び出しの結果を確認
+  - [x] 失敗したAPI呼び出しの詳細をログに出力
+  - [x] 各プライベートメソッドに`try-catch`を追加して、元のエラー情報を保持
+- [x] PascalCaseからcamelCaseへの変換処理（`frontend/src/lib/api/client.ts`）
+  - [x] `toCamelCase`ヘルパー関数を追加
+  - [x] `handleResponse`メソッドでレスポンスをパースした後、PascalCaseをcamelCaseに変換
+  - [x] エラーレスポンスも同様に変換
+
+### 完了条件
+- [x] ログイン時にマスターデータが正常に取得できる
+- [x] エラーハンドリングが改善され、詳細なエラー情報が出力される
+- [x] PascalCaseからcamelCaseへの変換が正しく動作する
+- [x] リンターエラーがない
+- [x] 既存機能に影響がない
+
+## Phase 17: WAFフィルタによる画像アップロードブロック問題の修正（2025年11月14日）
+
+### 目的
+インシデント登録フォームから画像を登録する際にWAFのFilterで止められる問題を解決する。
+
+### 問題箇所
+- 画像をData URI形式（Base64エンコード）でJSONボディとして送信している
+- Base64エンコードにより、ファイルサイズが約1.33倍に増加（10MBの画像は約13MBのBase64データ）
+- 非常に長いBase64文字列がWAFのルールに引っかかっている可能性がある
+
+### 実装内容
+- [x] バックエンド: multipart/form-data形式のファイルアップロードエンドポイントを追加
+  - [x] `IncidentFilesController.cs`に`CreateIncidentFileMultipart`メソッドを追加
+  - [x] `/api/incidents/{incidentId}/files/upload`エンドポイントを追加
+  - [x] `IFormFile`を使用してファイルを直接受け取る
+  - [x] ファイルサイズとファイルタイプのバリデーションを実装
+  - [x] 既存のJSON形式エンドポイントを維持（後方互換性のため）
+- [x] フロントエンド: APIクライアントにmultipart/form-data送信メソッドを追加
+  - [x] `ApiClient`クラスに`uploadFile`メソッドを追加
+  - [x] `FormData`を使用してファイルを送信
+  - [x] `requestWithRetry`関数でFormDataを検出して適切に処理（Content-Typeを自動設定）
+  - [x] `IncidentFilesApi`クラスに`createIncidentFileMultipart`メソッドを追加
+- [x] フロントエンド: 画像アップロード処理をmultipart/form-data形式に変更
+  - [x] `incident-form.tsx`の`handleImageChange`（2次情報）を変更
+  - [x] `incident-form.tsx`の`handleImageChange1`（1次情報）を変更
+  - [x] インシデントが既に保存されている場合はmultipart/form-data形式で即座にアップロード
+  - [x] インシデントが未保存の場合は一時ファイルとして保存（Data URI形式を維持）
+  - [x] `page.tsx`の`uploadIncidentFiles`関数を変更（Data URIからFileオブジェクトを再構築）
+
+### 完了条件
+- [x] multipart/form-data形式のファイルアップロードエンドポイントが実装されている
+- [x] フロントエンドからmultipart/form-data形式でファイルを送信できる
+- [x] WAFのフィルタに引っかからずにファイルをアップロードできる
+- [x] 既存のJSON形式エンドポイントが維持されている（後方互換性）
+- [x] リンターエラーがない
+- [x] 既存機能に影響がない

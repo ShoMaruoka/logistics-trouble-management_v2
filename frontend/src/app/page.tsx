@@ -190,7 +190,8 @@ export default function Home() {
   }
 
   /**
-   * インシデントファイルを並列アップロードする共通ヘルパー関数
+   * インシデントファイルを順次アップロードする共通ヘルパー関数
+   * サーバーリソースの保護のため、並列実行ではなく順次実行でアップロードします
    * @param incidentId インシデントID
    * @param pendingFiles アップロードする一時ファイル（files1: infoLevel 1, files: infoLevel 2）
    * @returns すべてのファイルのアップロードが成功した場合true、それ以外はfalse
@@ -200,67 +201,61 @@ export default function Home() {
     pendingFiles: { files1: Array<{ dataUri: string; fileName: string; fileType: string; fileSize: number }>, files: Array<{ dataUri: string; fileName: string; fileType: string; fileSize: number }> }
   ): Promise<boolean> => {
     // 1次情報（infoLevel 1）と2次情報（infoLevel 2）のファイルを1つの配列にまとめる
-    const uploadPromises: Promise<{ success: boolean; fileName: string; errorMessage?: string }>[] = [];
+    const filesToUpload: Array<{ fileInfo: { dataUri: string; fileName: string; fileType: string; fileSize: number }, infoLevel: 1 | 2 }> = [];
 
-    // 1次情報のファイルをアップロード用のPromise配列に追加
+    // 1次情報のファイルを追加
     for (const fileInfo of pendingFiles.files1) {
-      uploadPromises.push(
-        incidentFilesApi.createIncidentFile(incidentId, {
-          infoLevel: 1,
-          fileDataUri: fileInfo.dataUri,
-          fileName: fileInfo.fileName,
-          fileType: fileInfo.fileType,
-          fileSize: fileInfo.fileSize
-        }).then(response => ({
-          success: response.success,
-          fileName: fileInfo.fileName,
-          errorMessage: response.errorMessage
-        })).catch(error => ({
-          success: false,
-          fileName: fileInfo.fileName,
-          errorMessage: error instanceof Error ? error.message : String(error)
-        }))
-      );
+      filesToUpload.push({ fileInfo, infoLevel: 1 });
     }
 
-    // 2次情報のファイルをアップロード用のPromise配列に追加
+    // 2次情報のファイルを追加
     for (const fileInfo of pendingFiles.files) {
-      uploadPromises.push(
-        incidentFilesApi.createIncidentFile(incidentId, {
-          infoLevel: 2,
-          fileDataUri: fileInfo.dataUri,
-          fileName: fileInfo.fileName,
-          fileType: fileInfo.fileType,
-          fileSize: fileInfo.fileSize
-        }).then(response => ({
-          success: response.success,
-          fileName: fileInfo.fileName,
-          errorMessage: response.errorMessage
-        })).catch(error => ({
-          success: false,
-          fileName: fileInfo.fileName,
-          errorMessage: error instanceof Error ? error.message : String(error)
-        }))
-      );
+      filesToUpload.push({ fileInfo, infoLevel: 2 });
     }
 
-    // すべてのアップロードを並列実行
-    const results = await Promise.allSettled(uploadPromises);
+    // ファイルがなければ成功として返す
+    if (filesToUpload.length === 0) {
+      return true;
+    }
 
-    // 結果を検査して、ファイルごとの成功/失敗をログに記録
+    // 順次実行でアップロード（サーバーリソースの保護のため）
+    // multipart/form-data形式を使用してWAFの問題を回避
     let allSuccess = true;
-    results.forEach((result) => {
-      if (result.status === 'fulfilled') {
-        const fileResult = result.value;
-        if (!fileResult.success) {
+    for (const { fileInfo, infoLevel } of filesToUpload) {
+      try {
+        console.log(`ファイル「${fileInfo.fileName}」のアップロードを開始します... (${(fileInfo.fileSize / 1024 / 1024).toFixed(2)}MB)`);
+        
+        // Data URIからFileオブジェクトを再構築
+        const response = await fetch(fileInfo.dataUri);
+        const blob = await response.blob();
+        const file = new File([blob], fileInfo.fileName, { type: fileInfo.fileType });
+        
+        const uploadResponse = await incidentFilesApi.createIncidentFileMultipart(
+          incidentId,
+          file,
+          infoLevel
+        );
+
+        if (uploadResponse.success) {
+          console.log(`ファイル「${fileInfo.fileName}」のアップロードが完了しました`);
+        } else {
           allSuccess = false;
-          console.error(`ファイル「${fileResult.fileName}」のアップロードに失敗しました:`, fileResult.errorMessage);
+          console.error(`ファイル「${fileInfo.fileName}」のアップロードに失敗しました:`, uploadResponse.errorMessage);
         }
-      } else {
+      } catch (error) {
         allSuccess = false;
-        console.error(`ファイルアップロード中にエラーが発生しました:`, result.reason);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(`ファイル「${fileInfo.fileName}」のアップロード中にエラーが発生しました:`, errorMessage);
+        
+        // ネットワークエラーの場合は、次のファイルのアップロードを続行
+        // ただし、連続してエラーが発生した場合は中断する可能性を検討
+        if (errorMessage.includes('ERR_CONNECTION_RESET') || 
+            errorMessage.includes('Failed to fetch') ||
+            errorMessage.includes('ネットワークエラー')) {
+          console.warn('ネットワークエラーが発生しました。次のファイルのアップロードを続行します...');
+        }
       }
-    });
+    }
 
     return allSuccess;
   };
@@ -331,9 +326,16 @@ export default function Home() {
             }
           } catch (error) {
             console.error('一時ファイルのアップロードに失敗しました:', error);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            const isNetworkError = errorMessage.includes('ERR_CONNECTION_RESET') || 
+                                   errorMessage.includes('Failed to fetch') ||
+                                   errorMessage.includes('ネットワークエラー');
+            
             toast({
-              title: "警告",
-              description: "インシデントは更新されましたが、一部のファイルのアップロードに失敗しました。",
+              title: isNetworkError ? "ネットワークエラー" : "警告",
+              description: isNetworkError 
+                ? "インシデントは更新されましたが、ネットワークエラーのためファイルのアップロードに失敗しました。しばらくしてから再度お試しください。"
+                : "インシデントは更新されましたが、一部のファイルのアップロードに失敗しました。",
               variant: "destructive",
             });
           }
@@ -372,9 +374,16 @@ export default function Home() {
             }
           } catch (error) {
             console.error('一時ファイルのアップロードに失敗しました:', error);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            const isNetworkError = errorMessage.includes('ERR_CONNECTION_RESET') || 
+                                   errorMessage.includes('Failed to fetch') ||
+                                   errorMessage.includes('ネットワークエラー');
+            
             toast({
-              title: "警告",
-              description: "インシデントは作成されましたが、一部のファイルのアップロードに失敗しました。",
+              title: isNetworkError ? "ネットワークエラー" : "警告",
+              description: isNetworkError 
+                ? "インシデントは作成されましたが、ネットワークエラーのためファイルのアップロードに失敗しました。しばらくしてから再度お試しください。"
+                : "インシデントは作成されましたが、一部のファイルのアップロードに失敗しました。",
               variant: "destructive",
             });
           }
@@ -409,9 +418,16 @@ export default function Home() {
       setIsDialogOpen(false);
     } catch (error) {
       console.error('Error saving incident:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const isNetworkError = errorMessage.includes('ERR_CONNECTION_RESET') || 
+                             errorMessage.includes('Failed to fetch') ||
+                             errorMessage.includes('ネットワークエラー');
+      
       toast({
-        title: "エラーが発生しました",
-        description: error instanceof Error ? error.message : "インシデントの保存に失敗しました。",
+        title: isNetworkError ? "ネットワークエラー" : "エラーが発生しました",
+        description: isNetworkError 
+          ? "ネットワークエラーが発生しました。接続を確認してから再度お試しください。"
+          : (error instanceof Error ? error.message : "インシデントの保存に失敗しました。"),
         variant: "destructive",
       });
     }

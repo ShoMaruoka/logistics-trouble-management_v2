@@ -22,6 +22,11 @@ namespace LogisticsTroubleManagement.Models
         public string RoleName { get; set; } = string.Empty;
 
         /// <summary>
+        /// 表示順
+        /// </summary>
+        public int DisplayOrder { get; set; } = 0;
+
+        /// <summary>
         /// 作成日時
         /// </summary>
         public DateTime CreatedAt { get; set; }

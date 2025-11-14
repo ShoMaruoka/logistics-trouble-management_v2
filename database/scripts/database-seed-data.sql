@@ -11,102 +11,102 @@ USE LTMDB;
 -- 部門マスタ
 IF NOT EXISTS (SELECT * FROM 部門 WHERE 名称 = N'本社A')
 BEGIN
-    INSERT INTO 部門 (名称) VALUES
-    (N'本社A'),
-    (N'本社B'),
-    (N'東日本'),
-    (N'西日本');
+    INSERT INTO 部門 (名称, 表示順) VALUES
+    (N'本社A', 1),
+    (N'本社B', 2),
+    (N'東日本', 3),
+    (N'西日本', 4);
     PRINT '部門マスタデータを投入しました。';
 END
 
 -- 発生場所マスタ
 IF NOT EXISTS (SELECT * FROM 発生場所 WHERE 名称 = N'倉庫（入荷作業）')
 BEGIN
-    INSERT INTO 発生場所 (名称) VALUES
-    (N'倉庫（入荷作業）'),
-    (N'倉庫（格納作業）'),
-    (N'倉庫（出荷作業）'),
-    (N'配送（集荷/配達）'),
-    (N'配送（施設内）'),
-    (N'お客様先');
+    INSERT INTO 発生場所 (名称, 表示順) VALUES
+    (N'倉庫（入荷作業）', 1),
+    (N'倉庫（格納作業）', 2),
+    (N'倉庫（出荷作業）', 3),
+    (N'配送（集荷/配達）', 4),
+    (N'配送（施設内）', 5),
+    (N'お客様先', 6);
     PRINT '発生場所マスタデータを投入しました。';
 END
 
 -- 倉庫マスタ
 IF NOT EXISTS (SELECT * FROM 倉庫 WHERE 名称 = N'札幌倉庫')
 BEGIN
-    INSERT INTO 倉庫 (名称) VALUES
-    (N'札幌倉庫'),
-    (N'東京倉庫'),
-    (N'埼玉倉庫'),
-    (N'横浜倉庫'),
-    (N'大阪1・2倉庫'),
-    (N'神戸倉庫');
+    INSERT INTO 倉庫 (名称, 表示順) VALUES
+    (N'札幌倉庫', 1),
+    (N'東京倉庫', 2),
+    (N'埼玉倉庫', 3),
+    (N'横浜倉庫', 4),
+    (N'大阪1・2倉庫', 5),
+    (N'神戸倉庫', 6);
     PRINT '倉庫マスタデータを投入しました。';
 END
 
 -- 運送会社マスタ
 IF NOT EXISTS (SELECT * FROM 運送会社 WHERE 名称 = N'ヤマト運輸')
 BEGIN
-    INSERT INTO 運送会社 (名称) VALUES
-    (N'ヤマト運輸'),
-    (N'佐川急便'),
-    (N'福山通運'),
-    (N'西濃運輸'),
-    (N'チャーター'),
-    (N'その他輸送会社');
+    INSERT INTO 運送会社 (名称, 表示順) VALUES
+    (N'ヤマト運輸', 1),
+    (N'佐川急便', 2),
+    (N'福山通運', 3),
+    (N'西濃運輸', 4),
+    (N'チャーター', 5),
+    (N'その他輸送会社', 6);
     PRINT '運送会社マスタデータを投入しました。';
 END
 
 -- トラブル区分マスタ
 IF NOT EXISTS (SELECT * FROM トラブル区分 WHERE 名称 = N'荷役トラブル')
 BEGIN
-    INSERT INTO トラブル区分 (名称) VALUES
-    (N'荷役トラブル'),
-    (N'配送トラブル');
+    INSERT INTO トラブル区分 (名称, 表示順) VALUES
+    (N'荷役トラブル', 1),
+    (N'配送トラブル', 2);
     PRINT 'トラブル区分マスタデータを投入しました。';
 END
 
 -- トラブル詳細区分マスタ
 IF NOT EXISTS (SELECT * FROM トラブル詳細区分 WHERE 名称 = N'商品間違い')
 BEGIN
-    INSERT INTO トラブル詳細区分 (名称, トラブル区分ID) VALUES
-    (N'商品間違い', 1),
-    (N'数量過不足', 1),
-    (N'送付先間違い', 2),
-    (N'発送漏れ', 2),
-    (N'破損・汚損', 1),
-    (N'紛失', 2),
-    (N'その他の商品事故', 1);
+    INSERT INTO トラブル詳細区分 (名称, トラブル区分ID, 表示順) VALUES
+    (N'商品間違い', 1, 1),
+    (N'数量過不足', 1, 2),
+    (N'送付先間違い', 2, 3),
+    (N'発送漏れ', 2, 4),
+    (N'破損・汚損', 1, 5),
+    (N'紛失', 2, 6),
+    (N'その他の商品事故', 1, 7);
     PRINT 'トラブル詳細区分マスタデータを投入しました。';
 END
 
 -- 単位マスタ
 IF NOT EXISTS (SELECT * FROM 単位 WHERE コード = 'PALLET')
 BEGIN
-    INSERT INTO 単位 (コード, 名称) VALUES
-    ('CASE', 'ケース'),
-    ('PIECE', 'ピース');
+    INSERT INTO 単位 (コード, 名称, 表示順) VALUES
+    ('CASE', 'ケース', 1),
+    ('PIECE', 'ピース', 2);
     PRINT '単位マスタデータを投入しました。';
 END
 
 -- ユーザーロールマスタ
 IF NOT EXISTS (SELECT * FROM ユーザーロール WHERE ロール = 'システム管理者')
 BEGIN
-    INSERT INTO ユーザーロール (ロール) VALUES
-    ('システム管理者'),    -- ID: 1
-    ('部門管理者'),        -- ID: 2
-    ('倉庫管理者'),        -- ID: 3
-    ('一般ユーザー');      -- ID: 4
+    INSERT INTO ユーザーロール (ロール, 表示順) VALUES
+    ('システム管理者', 1),    -- ID: 1
+    ('部門管理者', 2),        -- ID: 2
+    ('倉庫管理者', 3),        -- ID: 3
+    ('一般ユーザー', 4);      -- ID: 4
     PRINT 'ユーザーロールマスタデータを投入しました。';
 END
 
 -- システムパラメータマスタ
 IF NOT EXISTS (SELECT * FROM システムパラメータ WHERE パラメータキー = 'SECOND_INFO_DEADLINE_DAYS')
 BEGIN
-    INSERT INTO システムパラメータ (名称, パラメータキー, パラメータ値, 説明, データ型, 作成者, 更新者) VALUES
-    ('2次情報入力期限（日数）', 'SECOND_INFO_DEADLINE_DAYS', '7', '2次情報入力期限を指定します', 'INT', 1, 1),
-    ('3次情報入力期限（日数）', 'THIRD_INFO_DEADLINE_DAYS', '7', '3次情報入力期限を指定します', 'INT', 1, 1);
+    INSERT INTO システムパラメータ (名称, パラメータキー, パラメータ値, 説明, データ型, 表示順, 作成者, 更新者) VALUES
+    ('2次情報入力期限（日数）', 'SECOND_INFO_DEADLINE_DAYS', '7', '2次情報入力期限を指定します', 'INT', 1, 1, 1),
+    ('3次情報入力期限（日数）', 'THIRD_INFO_DEADLINE_DAYS', '7', '3次情報入力期限を指定します', 'INT', 2, 1, 1);
     PRINT 'システムパラメータマスタデータを投入しました。';
 END
 

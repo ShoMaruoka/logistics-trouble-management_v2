@@ -10,6 +10,22 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Kestrelサーバーの設定（リクエストサイズ制限とタイムアウト）
+builder.WebHost.ConfigureKestrel(options =>
+{
+    // リクエストボディの最大サイズを50MBに設定（ファイルアップロード用）
+    options.Limits.MaxRequestBodySize = 50 * 1024 * 1024; // 50MB
+    
+    // リクエストヘッダーの最大サイズを増やす
+    options.Limits.MaxRequestHeadersTotalSize = 32 * 1024; // 32KB
+    
+    // リクエストのタイムアウトを5分に設定（大きなファイルのアップロードに対応）
+    options.Limits.RequestHeadersTimeout = TimeSpan.FromMinutes(5);
+    
+    // Keep-Aliveタイムアウトを設定
+    options.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(2);
+});
+
 // Serilogの設定
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
@@ -21,7 +37,18 @@ Log.Logger = new LoggerConfiguration()
 builder.Host.UseSerilog();
 
 // サービスの追加
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    // リクエストサイズ制限を設定（コントローラーレベル）
+    options.MaxModelBindingCollectionSize = 1000;
+})
+.AddJsonOptions(options =>
+{
+    // JSONシリアライゼーションの設定
+    options.JsonSerializerOptions.PropertyNamingPolicy = null;
+    options.JsonSerializerOptions.WriteIndented = false;
+});
+
 builder.Services.AddEndpointsApiExplorer();
 
 // Swaggerの設定（JWT認証対応）

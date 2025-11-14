@@ -30,11 +30,13 @@ namespace LogisticsTroubleManagement.Services
             {
                 var organizations = await _context.Organizations
                     .Where(o => o.IsActive)
-                    .OrderBy(o => o.Id)
+                    .OrderBy(o => o.DisplayOrder)
+                    .ThenBy(o => o.Id)
                     .Select(o => new MasterDataItemDto
                     {
                         Id = o.Id,
                         Name = o.Name,
+                        DisplayOrder = o.DisplayOrder,
                         IsActive = o.IsActive,
                         CreatedAt = o.CreatedAt,
                         UpdatedAt = o.UpdatedAt
@@ -59,11 +61,13 @@ namespace LogisticsTroubleManagement.Services
             {
                 var locations = await _context.OccurrenceLocations
                     .Where(l => l.IsActive)
-                    .OrderBy(l => l.Id)
+                    .OrderBy(l => l.DisplayOrder)
+                    .ThenBy(l => l.Id)
                     .Select(l => new MasterDataItemDto
                     {
                         Id = l.Id,
                         Name = l.Name,
+                        DisplayOrder = l.DisplayOrder,
                         IsActive = l.IsActive,
                         CreatedAt = l.CreatedAt,
                         UpdatedAt = l.UpdatedAt
@@ -89,11 +93,13 @@ namespace LogisticsTroubleManagement.Services
             {
                 var companies = await _context.ShippingCompanies
                     .Where(c => c.IsActive)
-                    .OrderBy(c => c.Id)
+                    .OrderBy(c => c.DisplayOrder)
+                    .ThenBy(c => c.Id)
                     .Select(c => new MasterDataItemDto
                     {
                         Id = c.Id,
                         Name = c.Name,
+                        DisplayOrder = c.DisplayOrder,
                         IsActive = c.IsActive,
                         CreatedAt = c.CreatedAt,
                         UpdatedAt = c.UpdatedAt
@@ -118,11 +124,13 @@ namespace LogisticsTroubleManagement.Services
             {
                 var categories = await _context.TroubleCategories
                     .Where(c => c.IsActive)
-                    .OrderBy(c => c.Id)
+                    .OrderBy(c => c.DisplayOrder)
+                    .ThenBy(c => c.Id)
                     .Select(c => new MasterDataItemDto
                     {
                         Id = c.Id,
                         Name = c.Name,
+                        DisplayOrder = c.DisplayOrder,
                         IsActive = c.IsActive,
                         CreatedAt = c.CreatedAt,
                         UpdatedAt = c.UpdatedAt
@@ -147,11 +155,13 @@ namespace LogisticsTroubleManagement.Services
             {
                 var detailCategories = await _context.TroubleDetailCategories
                     .Where(dc => dc.IsActive)
-                    .OrderBy(dc => dc.Id)
+                    .OrderBy(dc => dc.DisplayOrder)
+                    .ThenBy(dc => dc.Id)
                     .Select(dc => new TroubleDetailCategoryItemDto
                     {
                         Id = dc.Id,
                         Name = dc.Name,
+                        DisplayOrder = dc.DisplayOrder,
                         IsActive = dc.IsActive,
                         TroubleCategoryId = dc.TroubleCategoryId,
                         CreatedAt = dc.CreatedAt,
@@ -176,11 +186,13 @@ namespace LogisticsTroubleManagement.Services
             try
             {
                 var roles = await _context.UserRoles
-                    .OrderBy(r => r.Id)
+                    .OrderBy(r => r.DisplayOrder)
+                    .ThenBy(r => r.Id)
                     .Select(r => new MasterDataItemDto
                     {
                         Id = r.Id,
                         Name = r.RoleName,
+                        DisplayOrder = r.DisplayOrder,
                         IsActive = true, // UserRoleにはIsActiveフィールドがないためtrueを設定
                         CreatedAt = r.CreatedAt, // UserRoleエンティティのCreatedAtフィールドを使用
                         UpdatedAt = null // UserRoleにはUpdatedAtフィールドがないためnullを設定
@@ -223,13 +235,15 @@ namespace LogisticsTroubleManagement.Services
             {
                 var warehouses = await _context.Warehouses
                     .Where(w => w.IsActive)
-                    .OrderBy(w => w.Id)
+                    .OrderBy(w => w.DisplayOrder)
+                    .ThenBy(w => w.Id)
                     .ToListAsync();
 
                 var result = warehouses.Select(w => new MasterDataItemDto
                 {
                     Id = w.Id,
                     Name = w.Name,
+                    DisplayOrder = w.DisplayOrder,
                     IsActive = w.IsActive,
                     CreatedAt = w.CreatedAt,
                     UpdatedAt = w.UpdatedAt
@@ -253,7 +267,8 @@ namespace LogisticsTroubleManagement.Services
             {
                 var units = await _context.Units
                     .Where(u => u.IsActive)
-                    .OrderBy(u => u.Id)
+                    .OrderBy(u => u.DisplayOrder)
+                    .ThenBy(u => u.Id)
                     .ToListAsync();
 
                 var result = units.Select(u => new UnitItemDto
@@ -261,6 +276,7 @@ namespace LogisticsTroubleManagement.Services
                     Id = u.Id,
                     Name = u.Name,
                     Code = u.Code,
+                    DisplayOrder = u.DisplayOrder,
                     IsActive = u.IsActive,
                     CreatedAt = u.CreatedAt,
                     UpdatedAt = u.UpdatedAt
@@ -284,7 +300,8 @@ namespace LogisticsTroubleManagement.Services
             {
                 var systemParameters = await _context.SystemParameters
                     .Where(sp => sp.IsActive)
-                    .OrderBy(sp => sp.Id)
+                    .OrderBy(sp => sp.DisplayOrder)
+                    .ThenBy(sp => sp.Id)
                     .ToListAsync();
 
                 var result = systemParameters.Select(sp => new SystemParameterItemDto
@@ -295,6 +312,7 @@ namespace LogisticsTroubleManagement.Services
                     ParameterValue = sp.ParameterValue,
                     Description = sp.Description,
                     DataType = sp.DataType,
+                    DisplayOrder = sp.DisplayOrder,
                     IsActive = sp.IsActive,
                     CreatedAt = sp.CreatedAt,
                     UpdatedAt = sp.UpdatedAt
@@ -339,6 +357,7 @@ namespace LogisticsTroubleManagement.Services
                 var organization = new Organization
                 {
                     Name = dto.Name,
+                    DisplayOrder = dto.DisplayOrder,
                     IsActive = dto.IsActive,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
@@ -351,6 +370,7 @@ namespace LogisticsTroubleManagement.Services
                 {
                     Id = organization.Id,
                     Name = organization.Name,
+                    DisplayOrder = organization.DisplayOrder,
                     IsActive = organization.IsActive,
                     CreatedAt = organization.CreatedAt,
                     UpdatedAt = organization.UpdatedAt
@@ -396,6 +416,7 @@ namespace LogisticsTroubleManagement.Services
                 }
 
                 organization.Name = dto.Name;
+                organization.DisplayOrder = dto.DisplayOrder;
                 organization.IsActive = dto.IsActive;
                 organization.UpdatedAt = DateTime.UtcNow;
 
@@ -405,6 +426,7 @@ namespace LogisticsTroubleManagement.Services
                 {
                     Id = organization.Id,
                     Name = organization.Name,
+                    DisplayOrder = organization.DisplayOrder,
                     IsActive = organization.IsActive,
                     CreatedAt = organization.CreatedAt,
                     UpdatedAt = organization.UpdatedAt
@@ -483,6 +505,7 @@ namespace LogisticsTroubleManagement.Services
                 var location = new OccurrenceLocation
                 {
                     Name = dto.Name,
+                    DisplayOrder = dto.DisplayOrder,
                     IsActive = dto.IsActive,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
@@ -495,6 +518,7 @@ namespace LogisticsTroubleManagement.Services
                 {
                     Id = location.Id,
                     Name = location.Name,
+                    DisplayOrder = location.DisplayOrder,
                     IsActive = location.IsActive,
                     CreatedAt = location.CreatedAt,
                     UpdatedAt = location.UpdatedAt
@@ -540,6 +564,7 @@ namespace LogisticsTroubleManagement.Services
                 }
 
                 location.Name = dto.Name;
+                location.DisplayOrder = dto.DisplayOrder;
                 location.IsActive = dto.IsActive;
                 location.UpdatedAt = DateTime.UtcNow;
 
@@ -549,6 +574,7 @@ namespace LogisticsTroubleManagement.Services
                 {
                     Id = location.Id,
                     Name = location.Name,
+                    DisplayOrder = location.DisplayOrder,
                     IsActive = location.IsActive,
                     CreatedAt = location.CreatedAt,
                     UpdatedAt = location.UpdatedAt
@@ -627,6 +653,7 @@ namespace LogisticsTroubleManagement.Services
                 var warehouse = new Warehouse
                 {
                     Name = dto.Name,
+                    DisplayOrder = dto.DisplayOrder,
                     IsActive = dto.IsActive,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
@@ -639,6 +666,7 @@ namespace LogisticsTroubleManagement.Services
                 {
                     Id = warehouse.Id,
                     Name = warehouse.Name,
+                    DisplayOrder = warehouse.DisplayOrder,
                     IsActive = warehouse.IsActive,
                     CreatedAt = warehouse.CreatedAt,
                     UpdatedAt = warehouse.UpdatedAt
@@ -684,6 +712,7 @@ namespace LogisticsTroubleManagement.Services
                 }
 
                 warehouse.Name = dto.Name;
+                warehouse.DisplayOrder = dto.DisplayOrder;
                 warehouse.IsActive = dto.IsActive;
                 warehouse.UpdatedAt = DateTime.UtcNow;
 
@@ -693,6 +722,7 @@ namespace LogisticsTroubleManagement.Services
                 {
                     Id = warehouse.Id,
                     Name = warehouse.Name,
+                    DisplayOrder = warehouse.DisplayOrder,
                     IsActive = warehouse.IsActive,
                     CreatedAt = warehouse.CreatedAt,
                     UpdatedAt = warehouse.UpdatedAt
@@ -776,6 +806,7 @@ namespace LogisticsTroubleManagement.Services
                 var shippingCompany = new ShippingCompany
                 {
                     Name = dto.Name,
+                    DisplayOrder = dto.DisplayOrder,
                     IsActive = dto.IsActive,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
@@ -788,6 +819,7 @@ namespace LogisticsTroubleManagement.Services
                 {
                     Id = shippingCompany.Id,
                     Name = shippingCompany.Name,
+                    DisplayOrder = shippingCompany.DisplayOrder,
                     IsActive = shippingCompany.IsActive,
                     CreatedAt = shippingCompany.CreatedAt,
                     UpdatedAt = shippingCompany.UpdatedAt
@@ -833,6 +865,7 @@ namespace LogisticsTroubleManagement.Services
                 }
 
                 shippingCompany.Name = dto.Name;
+                shippingCompany.DisplayOrder = dto.DisplayOrder;
                 shippingCompany.IsActive = dto.IsActive;
                 shippingCompany.UpdatedAt = DateTime.UtcNow;
 
@@ -842,6 +875,7 @@ namespace LogisticsTroubleManagement.Services
                 {
                     Id = shippingCompany.Id,
                     Name = shippingCompany.Name,
+                    DisplayOrder = shippingCompany.DisplayOrder,
                     IsActive = shippingCompany.IsActive,
                     CreatedAt = shippingCompany.CreatedAt,
                     UpdatedAt = shippingCompany.UpdatedAt
@@ -920,6 +954,7 @@ namespace LogisticsTroubleManagement.Services
                 var troubleCategory = new TroubleCategory
                 {
                     Name = dto.Name,
+                    DisplayOrder = dto.DisplayOrder,
                     IsActive = dto.IsActive,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
@@ -932,6 +967,7 @@ namespace LogisticsTroubleManagement.Services
                 {
                     Id = troubleCategory.Id,
                     Name = troubleCategory.Name,
+                    DisplayOrder = troubleCategory.DisplayOrder,
                     IsActive = troubleCategory.IsActive,
                     CreatedAt = troubleCategory.CreatedAt,
                     UpdatedAt = troubleCategory.UpdatedAt
@@ -977,6 +1013,7 @@ namespace LogisticsTroubleManagement.Services
                 }
 
                 troubleCategory.Name = dto.Name;
+                troubleCategory.DisplayOrder = dto.DisplayOrder;
                 troubleCategory.IsActive = dto.IsActive;
                 troubleCategory.UpdatedAt = DateTime.UtcNow;
 
@@ -986,6 +1023,7 @@ namespace LogisticsTroubleManagement.Services
                 {
                     Id = troubleCategory.Id,
                     Name = troubleCategory.Name,
+                    DisplayOrder = troubleCategory.DisplayOrder,
                     IsActive = troubleCategory.IsActive,
                     CreatedAt = troubleCategory.CreatedAt,
                     UpdatedAt = troubleCategory.UpdatedAt
@@ -1077,6 +1115,7 @@ namespace LogisticsTroubleManagement.Services
                 {
                     Name = dto.Name,
                     TroubleCategoryId = dto.TroubleCategoryId,
+                    DisplayOrder = dto.DisplayOrder,
                     IsActive = dto.IsActive,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
@@ -1089,6 +1128,7 @@ namespace LogisticsTroubleManagement.Services
                 {
                     Id = troubleDetailCategory.Id,
                     Name = troubleDetailCategory.Name,
+                    DisplayOrder = troubleDetailCategory.DisplayOrder,
                     IsActive = troubleDetailCategory.IsActive,
                     CreatedAt = troubleDetailCategory.CreatedAt,
                     UpdatedAt = troubleDetailCategory.UpdatedAt
@@ -1144,6 +1184,7 @@ namespace LogisticsTroubleManagement.Services
 
                 troubleDetailCategory.Name = dto.Name;
                 troubleDetailCategory.TroubleCategoryId = dto.TroubleCategoryId;
+                troubleDetailCategory.DisplayOrder = dto.DisplayOrder;
                 troubleDetailCategory.IsActive = dto.IsActive;
                 troubleDetailCategory.UpdatedAt = DateTime.UtcNow;
 
@@ -1153,6 +1194,7 @@ namespace LogisticsTroubleManagement.Services
                 {
                     Id = troubleDetailCategory.Id,
                     Name = troubleDetailCategory.Name,
+                    DisplayOrder = troubleDetailCategory.DisplayOrder,
                     IsActive = troubleDetailCategory.IsActive,
                     CreatedAt = troubleDetailCategory.CreatedAt,
                     UpdatedAt = troubleDetailCategory.UpdatedAt
@@ -1241,6 +1283,7 @@ namespace LogisticsTroubleManagement.Services
                 {
                     Code = dto.Code,
                     Name = dto.Name,
+                    DisplayOrder = dto.DisplayOrder,
                     IsActive = dto.IsActive,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
@@ -1253,6 +1296,7 @@ namespace LogisticsTroubleManagement.Services
                 {
                     Id = unit.Id,
                     Name = unit.Name,
+                    DisplayOrder = unit.DisplayOrder,
                     IsActive = unit.IsActive,
                     CreatedAt = unit.CreatedAt,
                     UpdatedAt = unit.UpdatedAt
@@ -1308,6 +1352,7 @@ namespace LogisticsTroubleManagement.Services
 
                 unit.Code = dto.Code;
                 unit.Name = dto.Name;
+                unit.DisplayOrder = dto.DisplayOrder;
                 unit.IsActive = dto.IsActive;
                 unit.UpdatedAt = DateTime.UtcNow;
 
@@ -1317,6 +1362,7 @@ namespace LogisticsTroubleManagement.Services
                 {
                     Id = unit.Id,
                     Name = unit.Name,
+                    DisplayOrder = unit.DisplayOrder,
                     IsActive = unit.IsActive,
                     CreatedAt = unit.CreatedAt,
                     UpdatedAt = unit.UpdatedAt
@@ -1394,10 +1440,12 @@ namespace LogisticsTroubleManagement.Services
 
                 var systemParameter = new SystemParameter
                 {
+                    Name = dto.Name,
                     ParameterKey = dto.ParameterKey,
                     ParameterValue = dto.ParameterValue,
                     Description = dto.Description,
                     DataType = dto.DataType,
+                    DisplayOrder = dto.DisplayOrder,
                     IsActive = dto.IsActive,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
@@ -1410,6 +1458,7 @@ namespace LogisticsTroubleManagement.Services
                 {
                     Id = systemParameter.Id,
                     Name = systemParameter.ParameterKey, // パラメータキーを名前として使用
+                    DisplayOrder = systemParameter.DisplayOrder,
                     IsActive = systemParameter.IsActive,
                     CreatedAt = systemParameter.CreatedAt,
                     UpdatedAt = systemParameter.UpdatedAt
@@ -1459,6 +1508,7 @@ namespace LogisticsTroubleManagement.Services
                 systemParameter.ParameterValue = dto.ParameterValue;
                 systemParameter.Description = dto.Description;
                 systemParameter.DataType = dto.DataType;
+                systemParameter.DisplayOrder = dto.DisplayOrder;
                 systemParameter.IsActive = dto.IsActive;
                 systemParameter.UpdatedAt = DateTime.UtcNow;
 
@@ -1468,6 +1518,7 @@ namespace LogisticsTroubleManagement.Services
                 {
                     Id = systemParameter.Id,
                     Name = systemParameter.Name,
+                    DisplayOrder = systemParameter.DisplayOrder,
                     IsActive = systemParameter.IsActive,
                     CreatedAt = systemParameter.CreatedAt,
                     UpdatedAt = systemParameter.UpdatedAt
@@ -1537,6 +1588,7 @@ namespace LogisticsTroubleManagement.Services
                 var userRole = new UserRole
                 {
                     RoleName = dto.RoleName,
+                    DisplayOrder = dto.DisplayOrder,
                     CreatedAt = DateTime.UtcNow
                 };
 
@@ -1547,6 +1599,7 @@ namespace LogisticsTroubleManagement.Services
                 {
                     Id = userRole.Id,
                     Name = userRole.RoleName,
+                    DisplayOrder = userRole.DisplayOrder,
                     IsActive = true, // UserRoleにはIsActiveフィールドがないためtrueを設定
                     CreatedAt = userRole.CreatedAt,
                     UpdatedAt = null // UserRoleにはUpdatedAtフィールドがないためnullを設定
@@ -1591,6 +1644,7 @@ namespace LogisticsTroubleManagement.Services
                 }
 
                 userRole.RoleName = dto.RoleName;
+                userRole.DisplayOrder = dto.DisplayOrder;
                 // UserRoleにはUpdatedAtフィールドがないため、更新日時の設定は行わない
 
                 await _context.SaveChangesAsync();
@@ -1599,6 +1653,7 @@ namespace LogisticsTroubleManagement.Services
                 {
                     Id = userRole.Id,
                     Name = userRole.RoleName,
+                    DisplayOrder = userRole.DisplayOrder,
                     IsActive = true, // UserRoleにはIsActiveフィールドがないためtrueを設定
                     CreatedAt = userRole.CreatedAt,
                     UpdatedAt = null // UserRoleにはUpdatedAtフィールドがないためnullを設定

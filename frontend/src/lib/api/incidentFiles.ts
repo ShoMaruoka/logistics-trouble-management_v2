@@ -44,7 +44,22 @@ export class IncidentFilesApi {
   }
 
   /**
-   * インシデントファイルの追加
+   * インシデントファイルの追加（multipart/form-data形式 - 推奨）
+   */
+  async createIncidentFileMultipart(
+    incidentId: number,
+    file: File,
+    infoLevel: 1 | 2
+  ): Promise<ApiResponse<IncidentFile>> {
+    return apiClient.uploadFile<ApiResponse<IncidentFile>>(
+      `/api/incidents/${incidentId}/files/upload`,
+      file,
+      { infoLevel }
+    );
+  }
+
+  /**
+   * インシデントファイルの追加（JSON形式 - 後方互換性のため維持）
    */
   async createIncidentFile(
     incidentId: number,

@@ -15,6 +15,11 @@ namespace LogisticsTroubleManagement.DTOs
         public string Name { get; set; } = string.Empty;
 
         /// <summary>
+        /// 表示順
+        /// </summary>
+        public int DisplayOrder { get; set; } = 0;
+
+        /// <summary>
         /// 有効フラグ
         /// </summary>
         public bool IsActive { get; set; } = true;
@@ -39,6 +44,11 @@ namespace LogisticsTroubleManagement.DTOs
         public string Name { get; set; } = string.Empty;
 
         /// <summary>
+        /// 表示順
+        /// </summary>
+        public int DisplayOrder { get; set; } = 0;
+
+        /// <summary>
         /// 有効フラグ
         /// </summary>
         public bool IsActive { get; set; }
@@ -58,6 +68,11 @@ namespace LogisticsTroubleManagement.DTOs
         /// 名称
         /// </summary>
         public string Name { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 表示順
+        /// </summary>
+        public int DisplayOrder { get; set; } = 0;
 
         /// <summary>
         /// 有効フラグ
@@ -142,6 +157,11 @@ namespace LogisticsTroubleManagement.DTOs
         public int TroubleCategoryId { get; set; }
 
         /// <summary>
+        /// 表示順
+        /// </summary>
+        public int DisplayOrder { get; set; } = 0;
+
+        /// <summary>
         /// 有効フラグ
         /// </summary>
         public bool IsActive { get; set; } = true;
@@ -172,6 +192,11 @@ namespace LogisticsTroubleManagement.DTOs
         public int TroubleCategoryId { get; set; }
 
         /// <summary>
+        /// 表示順
+        /// </summary>
+        public int DisplayOrder { get; set; } = 0;
+
+        /// <summary>
         /// 有効フラグ
         /// </summary>
         public bool IsActive { get; set; }
@@ -195,6 +220,11 @@ namespace LogisticsTroubleManagement.DTOs
         [Required(ErrorMessage = "名称は必須です")]
         [StringLength(20, ErrorMessage = "名称は20文字以内で入力してください")]
         public string Name { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 表示順
+        /// </summary>
+        public int DisplayOrder { get; set; } = 0;
 
         /// <summary>
         /// 有効フラグ
@@ -226,6 +256,11 @@ namespace LogisticsTroubleManagement.DTOs
         [Required(ErrorMessage = "名称は必須です")]
         [StringLength(20, ErrorMessage = "名称は20文字以内で入力してください")]
         public string Name { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 表示順
+        /// </summary>
+        public int DisplayOrder { get; set; } = 0;
 
         /// <summary>
         /// 有効フラグ
@@ -271,6 +306,11 @@ namespace LogisticsTroubleManagement.DTOs
         [Required(ErrorMessage = "データ型は必須です")]
         [StringLength(50, ErrorMessage = "データ型は50文字以内で入力してください")]
         public string DataType { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 表示順
+        /// </summary>
+        public int DisplayOrder { get; set; } = 0;
 
         /// <summary>
         /// 有効フラグ
@@ -324,6 +364,11 @@ namespace LogisticsTroubleManagement.DTOs
         public string DataType { get; set; } = string.Empty;
 
         /// <summary>
+        /// 表示順
+        /// </summary>
+        public int DisplayOrder { get; set; } = 0;
+
+        /// <summary>
         /// 有効フラグ
         /// </summary>
         public bool IsActive { get; set; }
@@ -340,6 +385,11 @@ namespace LogisticsTroubleManagement.DTOs
         [Required(ErrorMessage = "ロール名は必須です")]
         [StringLength(50, ErrorMessage = "ロール名は50文字以内で入力してください")]
         public string RoleName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 表示順
+        /// </summary>
+        public int DisplayOrder { get; set; } = 0;
     }
 
     /// <summary>
@@ -359,5 +409,10 @@ namespace LogisticsTroubleManagement.DTOs
         [Required(ErrorMessage = "ロール名は必須です")]
         [StringLength(50, ErrorMessage = "ロール名は50文字以内で入力してください")]
         public string RoleName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 表示順
+        /// </summary>
+        public int DisplayOrder { get; set; } = 0;
     }
 }

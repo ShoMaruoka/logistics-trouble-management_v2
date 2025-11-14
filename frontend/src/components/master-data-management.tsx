@@ -92,6 +92,7 @@ export function MasterDataManagement({ user, isAuthenticated, authLoading }: Mas
   const [editingItem, setEditingItem] = useState<(MasterDataItem | UserItem) | null>(null);
   const [formData, setFormData] = useState<any>({
     name: '',
+    displayOrder: 0,
     isActive: true,
     troubleCategoryId: undefined,
     code: '',
@@ -225,6 +226,14 @@ export function MasterDataManagement({ user, isAuthenticated, authLoading }: Mas
       } else if (selectedType === 'troubleDetailCategories') {
         await masterDataApi.createTroubleDetailCategory(formData as any);
       } else if (selectedType === 'units') {
+        if (!formData.code?.trim()) {
+          toast({
+            title: "エラーが発生しました",
+            description: "コードを入力してください。",
+            variant: "destructive",
+          });
+          return;
+        }
         await masterDataApi.createUnit(formData as any);
       } else if (selectedType === 'systemParameters') {
         await masterDataApi.createSystemParameter(formData as any);
@@ -242,6 +251,7 @@ export function MasterDataManagement({ user, isAuthenticated, authLoading }: Mas
       setIsCreateDialogOpen(false);
       setFormData({ 
         name: '', 
+        displayOrder: 0,
         isActive: true, 
         troubleCategoryId: undefined,
         code: '',
@@ -278,6 +288,7 @@ export function MasterDataManagement({ user, isAuthenticated, authLoading }: Mas
       const updateData: MasterDataUpdateRequest = {
         id: editingItem.id,
         name: formData.name,
+        displayOrder: formData.displayOrder ?? 0,
         isActive: formData.isActive,
       };
       
@@ -304,6 +315,7 @@ export function MasterDataManagement({ user, isAuthenticated, authLoading }: Mas
           id: editingItem.id,
           name: formData.name,
           troubleCategoryId: formData.troubleCategoryId,
+          displayOrder: formData.displayOrder ?? 0,
           isActive: formData.isActive,
         };
         console.log('トラブル詳細区分更新データ:', troubleDetailUpdateData);
@@ -321,6 +333,7 @@ export function MasterDataManagement({ user, isAuthenticated, authLoading }: Mas
           id: editingItem.id,
           code: formData.code,
           name: formData.name,
+          displayOrder: formData.displayOrder ?? 0,
           isActive: formData.isActive,
         };
         console.log('単位更新データ:', unitUpdateData);
@@ -340,6 +353,7 @@ export function MasterDataManagement({ user, isAuthenticated, authLoading }: Mas
           parameterValue: formData.parameterValue,
           description: formData.description || '',
           dataType: formData.dataType,
+          displayOrder: formData.displayOrder ?? 0,
           isActive: formData.isActive,
         };
         console.log('システムパラメータ更新データ:', systemParameterUpdateData);
@@ -359,6 +373,7 @@ export function MasterDataManagement({ user, isAuthenticated, authLoading }: Mas
         const userRoleUpdateData: UserRoleUpdateRequest = {
           id: editingItem.id,
           roleName: formData.roleName,
+          displayOrder: formData.displayOrder ?? 0,
         };
         await masterDataApi.updateUserRole(editingItem.id, userRoleUpdateData);
       }
@@ -372,6 +387,7 @@ export function MasterDataManagement({ user, isAuthenticated, authLoading }: Mas
       setEditingItem(null);
       setFormData({ 
         name: '', 
+        displayOrder: 0,
         isActive: true, 
         troubleCategoryId: undefined,
         code: '',
@@ -450,6 +466,7 @@ export function MasterDataManagement({ user, isAuthenticated, authLoading }: Mas
       const userItem = item as UserItem;
       setFormData({
         name: userItem.displayName,
+        displayOrder: 0,
         isActive: userItem.isActive,
         troubleCategoryId: undefined,
         code: '',
@@ -472,6 +489,7 @@ export function MasterDataManagement({ user, isAuthenticated, authLoading }: Mas
       const masterItem = item as MasterDataItem;
       setFormData({
         name: masterItem.name,
+        displayOrder: masterItem.displayOrder ?? 0,
         isActive: masterItem.isActive,
         troubleCategoryId: undefined,
         code: '',
@@ -493,6 +511,7 @@ export function MasterDataManagement({ user, isAuthenticated, authLoading }: Mas
       const masterItem = item as MasterDataItem;
       setFormData({
         name: masterItem.name,
+        displayOrder: masterItem.displayOrder ?? 0,
         isActive: masterItem.isActive,
         troubleCategoryId: selectedType === 'troubleDetailCategories' ? (masterItem as any).troubleCategoryId : undefined,
         code: selectedType === 'units' ? (masterItem as any).code || '' : '',
@@ -673,15 +692,28 @@ export function MasterDataManagement({ user, isAuthenticated, authLoading }: Mas
           <div className="space-y-4">
             {/* ユーザー以外の場合は名称フィールドを表示 */}
             {selectedType !== 'users' && selectedType !== 'userRoles' && (
-              <div>
-                <Label htmlFor="name">名称</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="名称を入力してください"
-                />
-              </div>
+              <>
+                <div>
+                  <Label htmlFor="name">名称</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="名称を入力してください"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="displayOrder">表示順</Label>
+                  <Input
+                    id="displayOrder"
+                    type="number"
+                    value={formData.displayOrder ?? 0}
+                    onChange={(e) => setFormData({ ...formData, displayOrder: parseInt(e.target.value) || 0 })}
+                    placeholder="表示順を入力してください"
+                    min="0"
+                  />
+                </div>
+              </>
             )}
             
             {/* トラブル詳細区分の場合はトラブル区分選択を追加 */}
@@ -857,15 +889,28 @@ export function MasterDataManagement({ user, isAuthenticated, authLoading }: Mas
 
             {/* ユーザーロールの場合は追加フィールドを表示 */}
             {selectedType === 'userRoles' && (
-              <div>
-                <Label htmlFor="roleName">ロール名</Label>
-                <Input
-                  id="roleName"
-                  value={formData.roleName}
-                  onChange={(e) => setFormData({ ...formData, roleName: e.target.value })}
-                  placeholder="ロール名を入力してください"
-                />
-              </div>
+              <>
+                <div>
+                  <Label htmlFor="roleName">ロール名</Label>
+                  <Input
+                    id="roleName"
+                    value={formData.roleName}
+                    onChange={(e) => setFormData({ ...formData, roleName: e.target.value })}
+                    placeholder="ロール名を入力してください"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="displayOrder">表示順</Label>
+                  <Input
+                    id="displayOrder"
+                    type="number"
+                    value={formData.displayOrder ?? 0}
+                    onChange={(e) => setFormData({ ...formData, displayOrder: parseInt(e.target.value) || 0 })}
+                    placeholder="表示順を入力してください"
+                    min="0"
+                  />
+                </div>
+              </>
             )}
 
             <div className="flex items-center space-x-2">
@@ -886,6 +931,7 @@ export function MasterDataManagement({ user, isAuthenticated, authLoading }: Mas
               disabled={
                 (selectedType !== 'users' && selectedType !== 'userRoles' && !formData.name.trim()) || 
                 (selectedType === 'troubleDetailCategories' && !formData.troubleCategoryId) ||
+                (selectedType === 'units' && !formData.code?.trim()) ||
                 (selectedType === 'systemParameters' && (!formData.parameterKey.trim() || !formData.parameterValue.trim())) ||
                 (selectedType === 'users' && (!formData.username.trim() || !formData.displayName.trim() || !formData.password.trim() || !formData.userRoleId)) ||
                 (selectedType === 'userRoles' && !formData.roleName.trim())
@@ -909,15 +955,28 @@ export function MasterDataManagement({ user, isAuthenticated, authLoading }: Mas
           <div className="space-y-4">
             {/* ユーザー以外の場合は名称フィールドを表示 */}
             {selectedType !== 'users' && selectedType !== 'userRoles' && (
-              <div>
-                <Label htmlFor="edit-name">名称</Label>
-                <Input
-                  id="edit-name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="名称を入力してください"
-                />
-              </div>
+              <>
+                <div>
+                  <Label htmlFor="edit-name">名称</Label>
+                  <Input
+                    id="edit-name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="名称を入力してください"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-displayOrder">表示順</Label>
+                  <Input
+                    id="edit-displayOrder"
+                    type="number"
+                    value={formData.displayOrder ?? 0}
+                    onChange={(e) => setFormData({ ...formData, displayOrder: parseInt(e.target.value) || 0 })}
+                    placeholder="表示順を入力してください"
+                    min="0"
+                  />
+                </div>
+              </>
             )}
             
             {/* トラブル詳細区分の場合はトラブル区分選択を追加 */}
@@ -1073,15 +1132,28 @@ export function MasterDataManagement({ user, isAuthenticated, authLoading }: Mas
 
             {/* ユーザーロールの場合は追加フィールドを表示 */}
             {selectedType === 'userRoles' && (
-              <div>
-                <Label htmlFor="edit-roleName">ロール名</Label>
-                <Input
-                  id="edit-roleName"
-                  value={formData.roleName}
-                  onChange={(e) => setFormData({ ...formData, roleName: e.target.value })}
-                  placeholder="ロール名を入力してください"
-                />
-              </div>
+              <>
+                <div>
+                  <Label htmlFor="edit-roleName">ロール名</Label>
+                  <Input
+                    id="edit-roleName"
+                    value={formData.roleName}
+                    onChange={(e) => setFormData({ ...formData, roleName: e.target.value })}
+                    placeholder="ロール名を入力してください"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-displayOrder">表示順</Label>
+                  <Input
+                    id="edit-displayOrder"
+                    type="number"
+                    value={formData.displayOrder ?? 0}
+                    onChange={(e) => setFormData({ ...formData, displayOrder: parseInt(e.target.value) || 0 })}
+                    placeholder="表示順を入力してください"
+                    min="0"
+                  />
+                </div>
+              </>
             )}
 
             <div className="flex items-center space-x-2">

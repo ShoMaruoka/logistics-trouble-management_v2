@@ -49,6 +49,11 @@ namespace LogisticsTroubleManagement.Models
         public string DataType { get; set; } = string.Empty;
 
         /// <summary>
+        /// 表示順
+        /// </summary>
+        public int DisplayOrder { get; set; } = 0;
+
+        /// <summary>
         /// 有効フラグ
         /// </summary>
         public bool IsActive { get; set; } = true;

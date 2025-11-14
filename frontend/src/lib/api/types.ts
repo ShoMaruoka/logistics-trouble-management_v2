@@ -161,6 +161,7 @@ export interface MasterDataItem {
   description?: string;
   isActive: boolean;
   sortOrder?: number;
+  displayOrder?: number;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -198,18 +199,21 @@ export interface MasterDataResponse {
 // マスタデータCRUD操作用の型
 export interface MasterDataCreateRequest {
   name: string;
+  displayOrder?: number;
   isActive: boolean;
 }
 
 export interface MasterDataUpdateRequest {
   id: number;
   name: string;
+  displayOrder?: number;
   isActive: boolean;
 }
 
 export interface TroubleDetailCategoryCreateRequest {
   name: string;
   troubleCategoryId: number;
+  displayOrder?: number;
   isActive: boolean;
 }
 
@@ -217,12 +221,14 @@ export interface TroubleDetailCategoryUpdateRequest {
   id: number;
   name: string;
   troubleCategoryId: number;
+  displayOrder?: number;
   isActive: boolean;
 }
 
 export interface UnitCreateRequest {
   code: string;
   name: string;
+  displayOrder?: number;
   isActive: boolean;
 }
 
@@ -230,6 +236,7 @@ export interface UnitUpdateRequest {
   id: number;
   code: string;
   name: string;
+  displayOrder?: number;
   isActive: boolean;
 }
 
@@ -238,6 +245,7 @@ export interface SystemParameterCreateRequest {
   parameterValue: string;
   description?: string;
   dataType: string;
+  displayOrder?: number;
   isActive: boolean;
 }
 
@@ -247,6 +255,7 @@ export interface SystemParameterUpdateRequest {
   parameterValue: string;
   description?: string;
   dataType: string;
+  displayOrder?: number;
   isActive: boolean;
 }
 
@@ -296,11 +305,13 @@ export interface ChangePasswordRequest {
 // ユーザーロール管理関連の型
 export interface UserRoleCreateRequest {
   roleName: string;
+  displayOrder?: number;
 }
 
 export interface UserRoleUpdateRequest {
   id: number;
   roleName: string;
+  displayOrder?: number;
 }
 
 export interface UserRoleItem {

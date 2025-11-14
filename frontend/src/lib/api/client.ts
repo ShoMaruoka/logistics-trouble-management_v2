@@ -38,6 +38,33 @@ class ApiClient {
   }
 
   /**
+   * PascalCaseをcamelCaseに変換するヘルパー関数
+   */
+  private toCamelCase(obj: any): any {
+    if (obj === null || obj === undefined) {
+      return obj;
+    }
+    
+    if (Array.isArray(obj)) {
+      return obj.map(item => this.toCamelCase(item));
+    }
+    
+    if (typeof obj === 'object') {
+      const camelCaseObj: any = {};
+      for (const key in obj) {
+        if (obj.hasOwnProperty(key)) {
+          // 最初の文字を小文字に変換（PascalCase → camelCase）
+          const camelKey = key.charAt(0).toLowerCase() + key.slice(1);
+          camelCaseObj[camelKey] = this.toCamelCase(obj[key]);
+        }
+      }
+      return camelCaseObj;
+    }
+    
+    return obj;
+  }
+
+  /**
    * レスポンスを処理
    */
   private async handleResponse<T>(response: Response): Promise<T> {
@@ -48,8 +75,10 @@ class ApiClient {
 
       try {
         const errorData = await response.json();
-        errorMessage = errorData.errorMessage || errorMessage;
-        details = errorData;
+        // PascalCaseをcamelCaseに変換
+        const camelErrorData = this.toCamelCase(errorData);
+        errorMessage = camelErrorData.errorMessage || errorData.ErrorMessage || errorMessage;
+        details = camelErrorData;
       } catch {
         // JSON解析に失敗した場合はデフォルトメッセージを使用
       }
@@ -81,7 +110,9 @@ class ApiClient {
     }
 
     try {
-      return await response.json();
+      const jsonData = await response.json();
+      // PascalCaseをcamelCaseに変換
+      return this.toCamelCase(jsonData) as T;
     } catch (error) {
       throw new ApiError(
         ApiErrorType.UNKNOWN_ERROR,
@@ -100,24 +131,108 @@ class ApiClient {
     retryCount = 0
   ): Promise<T> {
     try {
-      const response = await fetch(url, {
-        ...options,
-        headers: {
-          ...this.getAuthHeaders(),
-          ...options.headers,
-        },
-      });
+      // タイムアウト制御用のAbortController
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+      }, API_CONFIG.REQUEST.TIMEOUT);
 
-      return await this.handleResponse<T>(response);
+      try {
+        // FormDataの場合はContent-Typeを設定しない（ブラウザが自動設定）
+        const authHeaders = this.getAuthHeaders();
+        const isFormData = options.body instanceof FormData;
+        
+        // FormDataの場合はContent-Typeを除外
+        const headers: Record<string, string> = {};
+        if (!isFormData) {
+          // JSONリクエストの場合はContent-Typeを含める
+          Object.assign(headers, authHeaders);
+        } else {
+          // FormDataの場合はAuthorizationのみを含める
+          if (authHeaders.Authorization) {
+            headers.Authorization = authHeaders.Authorization;
+          }
+        }
+        
+        const response = await fetch(url, {
+          ...options,
+          signal: controller.signal,
+          headers: {
+            ...headers,
+            ...options.headers,
+          },
+        });
+
+        clearTimeout(timeoutId);
+        return await this.handleResponse<T>(response);
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        
+        // fetchエラーをネットワークエラーとして扱う
+        if (fetchError.name === 'AbortError' || 
+            fetchError.message?.includes('Failed to fetch') ||
+            fetchError.message?.includes('ERR_CONNECTION_RESET') ||
+            fetchError.message?.includes('network') ||
+            fetchError.message?.includes('NetworkError')) {
+          const networkError = new ApiError(
+            ApiErrorType.NETWORK_ERROR,
+            'ネットワークエラーが発生しました。接続を確認してください。',
+            undefined,
+            { originalError: fetchError.message }
+          );
+          
+          if (retryCount < API_CONFIG.REQUEST.RETRY_ATTEMPTS) {
+            console.warn(`ネットワークエラーが発生しました。リトライします (${retryCount + 1}/${API_CONFIG.REQUEST.RETRY_ATTEMPTS}):`, fetchError.message);
+            await new Promise(resolve => 
+              setTimeout(resolve, API_CONFIG.REQUEST.RETRY_DELAY * (retryCount + 1))
+            );
+            return this.requestWithRetry<T>(url, options, retryCount + 1);
+          }
+          
+          throw networkError;
+        }
+        
+        throw fetchError;
+      }
     } catch (error) {
-      if (error instanceof ApiError && error.type === ApiErrorType.NETWORK_ERROR) {
+      // ApiErrorの場合はそのまま再スロー
+      if (error instanceof ApiError) {
+        if (error.type === ApiErrorType.NETWORK_ERROR) {
+          if (retryCount < API_CONFIG.REQUEST.RETRY_ATTEMPTS) {
+            console.warn(`ネットワークエラーが発生しました。リトライします (${retryCount + 1}/${API_CONFIG.REQUEST.RETRY_ATTEMPTS}):`, error.message);
+            await new Promise(resolve => 
+              setTimeout(resolve, API_CONFIG.REQUEST.RETRY_DELAY * (retryCount + 1))
+            );
+            return this.requestWithRetry<T>(url, options, retryCount + 1);
+          }
+        }
+        throw error;
+      }
+      
+      // その他のエラーもネットワークエラーとして扱う可能性がある
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('Failed to fetch') ||
+          errorMessage.includes('ERR_CONNECTION_RESET') ||
+          errorMessage.includes('network') ||
+          errorMessage.includes('NetworkError')) {
+        const networkError = new ApiError(
+          ApiErrorType.NETWORK_ERROR,
+          'ネットワークエラーが発生しました。接続を確認してください。',
+          undefined,
+          { originalError: errorMessage }
+        );
+        
         if (retryCount < API_CONFIG.REQUEST.RETRY_ATTEMPTS) {
+          console.warn(`ネットワークエラーが発生しました。リトライします (${retryCount + 1}/${API_CONFIG.REQUEST.RETRY_ATTEMPTS}):`, errorMessage);
           await new Promise(resolve => 
             setTimeout(resolve, API_CONFIG.REQUEST.RETRY_DELAY * (retryCount + 1))
           );
           return this.requestWithRetry<T>(url, options, retryCount + 1);
         }
+        
+        throw networkError;
       }
+      
       throw error;
     }
   }
@@ -167,6 +282,30 @@ class ApiClient {
   async delete<T>(endpoint: string): Promise<T> {
     return this.requestWithRetry<T>(`${this.baseURL}${endpoint}`, {
       method: 'DELETE',
+    });
+  }
+
+  /**
+   * multipart/form-data形式でファイルをアップロード
+   */
+  async uploadFile<T>(
+    endpoint: string,
+    file: File,
+    additionalData?: Record<string, string | number>
+  ): Promise<T> {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    if (additionalData) {
+      Object.entries(additionalData).forEach(([key, value]) => {
+        formData.append(key, String(value));
+      });
+    }
+
+    // requestWithRetry関数でFormDataを検出して適切に処理される
+    return this.requestWithRetry<T>(`${this.baseURL}${endpoint}`, {
+      method: 'POST',
+      body: formData,
     });
   }
 

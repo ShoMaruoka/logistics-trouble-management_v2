@@ -522,50 +522,58 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
     }
 
     try {
-      // Promiseでファイル読み込みを待機
-      const filePromises = Array.from(fileList).map((file) => {
-        return new Promise<FileInfo>((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            const dataUri = reader.result as string;
-            resolve({
-              dataUri,
-              fileName: file.name,
-              fileType: file.type,
-              fileSize: file.size
-            });
-          };
-          reader.readAsDataURL(file);
-        });
-      });
-
-      // すべてのファイルが読み込まれるまで待機
-      const loadedFiles = await Promise.all(filePromises);
-
       if (incidentToEdit?.id) {
-        // インシデントが既に保存されている場合は即座にAPI経由で追加
-        for (const fileInfo of loadedFiles) {
-          const response = await incidentFilesApi.createIncidentFile(parseInt(incidentToEdit.id), {
-            infoLevel: 2,
-            fileDataUri: fileInfo.dataUri,
-            fileName: fileInfo.fileName,
-            fileType: fileInfo.fileType,
-            fileSize: fileInfo.fileSize
-          });
+        // インシデントが既に保存されている場合は即座にAPI経由で追加（multipart/form-data形式）
+        for (const file of Array.from(fileList)) {
+          try {
+            const response = await incidentFilesApi.createIncidentFileMultipart(
+              parseInt(incidentToEdit.id),
+              file,
+              2 // infoLevel: 2次情報
+            );
 
-          if (response.success && response.data) {
-            const updatedFiles = [...files, fileInfo];
-            setFiles(updatedFiles);
-            // ファイルIDをマッピングに追加
-            const newIdsMap = new Map(fileIds);
-            newIdsMap.set(updatedFiles.length - 1, response.data.id);
-            setFileIds(newIdsMap);
-          } else {
-            alert(`ファイル「${fileInfo.fileName}」の追加に失敗しました: ${response.errorMessage || '不明なエラー'}`);
+            if (response.success && response.data) {
+              // レスポンスからFileInfoを作成
+              const fileInfo: FileInfo = {
+                dataUri: response.data.fileDataUri,
+                fileName: response.data.fileName,
+                fileType: response.data.fileType,
+                fileSize: response.data.fileSize
+              };
+              const updatedFiles = [...files, fileInfo];
+              setFiles(updatedFiles);
+              // ファイルIDをマッピングに追加
+              const newIdsMap = new Map(fileIds);
+              newIdsMap.set(updatedFiles.length - 1, response.data.id);
+              setFileIds(newIdsMap);
+            } else {
+              alert(`ファイル「${file.name}」の追加に失敗しました: ${response.errorMessage || '不明なエラー'}`);
+            }
+          } catch (error) {
+            console.error(`ファイル「${file.name}」のアップロードエラー:`, error);
+            alert(`ファイル「${file.name}」の追加に失敗しました`);
           }
         }
       } else {
-        // インシデントが未保存の場合は一時ファイルとして保存
+        // インシデントが未保存の場合は一時ファイルとして保存（Data URI形式を維持）
+        const filePromises = Array.from(fileList).map((file) => {
+          return new Promise<FileInfo>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const dataUri = reader.result as string;
+              resolve({
+                dataUri,
+                fileName: file.name,
+                fileType: file.type,
+                fileSize: file.size
+              });
+            };
+            reader.readAsDataURL(file);
+          });
+        });
+
+        // すべてのファイルが読み込まれるまで待機
+        const loadedFiles = await Promise.all(filePromises);
         setPendingFiles([...pendingFiles, ...loadedFiles]);
       }
     } catch (error) {
@@ -682,50 +690,58 @@ export function IncidentForm({ onSave, onCancel, incidentToEdit }: IncidentFormP
     }
 
     try {
-      // Promiseでファイル読み込みを待機
-      const filePromises = Array.from(fileList).map((file) => {
-        return new Promise<FileInfo>((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            const dataUri = reader.result as string;
-            resolve({
-              dataUri,
-              fileName: file.name,
-              fileType: file.type,
-              fileSize: file.size
-            });
-          };
-          reader.readAsDataURL(file);
-        });
-      });
-
-      // すべてのファイルが読み込まれるまで待機
-      const loadedFiles = await Promise.all(filePromises);
-
       if (incidentToEdit?.id) {
-        // インシデントが既に保存されている場合は即座にAPI経由で追加
-        for (const fileInfo of loadedFiles) {
-          const response = await incidentFilesApi.createIncidentFile(parseInt(incidentToEdit.id), {
-            infoLevel: 1,
-            fileDataUri: fileInfo.dataUri,
-            fileName: fileInfo.fileName,
-            fileType: fileInfo.fileType,
-            fileSize: fileInfo.fileSize
-          });
+        // インシデントが既に保存されている場合は即座にAPI経由で追加（multipart/form-data形式）
+        for (const file of Array.from(fileList)) {
+          try {
+            const response = await incidentFilesApi.createIncidentFileMultipart(
+              parseInt(incidentToEdit.id),
+              file,
+              1 // infoLevel: 1次情報
+            );
 
-          if (response.success && response.data) {
-            const updatedFiles = [...files1, fileInfo];
-            setFiles1(updatedFiles);
-            // ファイルIDをマッピングに追加
-            const newIdsMap = new Map(fileIds1);
-            newIdsMap.set(updatedFiles.length - 1, response.data.id);
-            setFileIds1(newIdsMap);
-          } else {
-            alert(`ファイル「${fileInfo.fileName}」の追加に失敗しました: ${response.errorMessage || '不明なエラー'}`);
+            if (response.success && response.data) {
+              // レスポンスからFileInfoを作成
+              const fileInfo: FileInfo = {
+                dataUri: response.data.fileDataUri,
+                fileName: response.data.fileName,
+                fileType: response.data.fileType,
+                fileSize: response.data.fileSize
+              };
+              const updatedFiles = [...files1, fileInfo];
+              setFiles1(updatedFiles);
+              // ファイルIDをマッピングに追加
+              const newIdsMap = new Map(fileIds1);
+              newIdsMap.set(updatedFiles.length - 1, response.data.id);
+              setFileIds1(newIdsMap);
+            } else {
+              alert(`ファイル「${file.name}」の追加に失敗しました: ${response.errorMessage || '不明なエラー'}`);
+            }
+          } catch (error) {
+            console.error(`ファイル「${file.name}」のアップロードエラー:`, error);
+            alert(`ファイル「${file.name}」の追加に失敗しました`);
           }
         }
       } else {
-        // インシデントが未保存の場合は一時ファイルとして保存
+        // インシデントが未保存の場合は一時ファイルとして保存（Data URI形式を維持）
+        const filePromises = Array.from(fileList).map((file) => {
+          return new Promise<FileInfo>((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const dataUri = reader.result as string;
+              resolve({
+                dataUri,
+                fileName: file.name,
+                fileType: file.type,
+                fileSize: file.size
+              });
+            };
+            reader.readAsDataURL(file);
+          });
+        });
+
+        // すべてのファイルが読み込まれるまで待機
+        const loadedFiles = await Promise.all(filePromises);
         setPendingFiles1([...pendingFiles1, ...loadedFiles]);
       }
     } catch (error) {
